@@ -1,0 +1,133 @@
+# emacs/Containerfile
+
+# Copyright (c) 2023 Tim Perkins
+
+ARG BASE_CONTAINER
+FROM $BASE_CONTAINER
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Emacs variables
+ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
+ARG EMACS_DEB_DIST="jammy"
+ARG EMACS_DEB_COMP="main"
+ARG EMACS_KEY_FINGERPRINT="0x873503a090750cdaeb0754d93ff0e01eeaafc9cd"
+ARG EMACS_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$EMACS_KEY_FINGERPRINT"
+ARG EMACS_KEY_FILE="/usr/share/keyrings/emacs-keyring.gpg"
+
+# Add Emacs repo
+RUN curl -fL "$EMACS_KEY_URL" | gpg --dearmor > $EMACS_KEY_FILE \
+    && { \
+        echo "# Emacs Repo (kelleyk)"; \
+        echo "deb [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+        echo "deb-src [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/emacs.list
+
+# Install Emacs 28
+RUN apt-get update \
+    && apt-get install -y \
+        emacs28 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install xorg for GUI, libtool-bin for building VTerm, libcanberra-gtk3-module
+# to silence warnings, etc
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libcanberra-gtk3-module \
+        libtool-bin \
+        xorg \
+    && rm -rf /var/lib/apt/lists/*
+
+# ripgrep variables
+ARG RG_URL="https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ripgrep_13.0.0_amd64.deb"
+ARG RG_FILE="ripgrep_13.0.0_amd64.deb"
+ARG RG_MD5SUM="83f105847a48c197916569cf72d8b0d3"
+
+# Install ripgrep
+RUN curl -fL -o $RG_FILE "$RG_URL" \
+    && (echo "$RG_MD5SUM  $RG_FILE" | md5sum --quiet -c -) \
+    && dpkg -i $RG_FILE \
+    && rm -f $RG_FILE
+
+# fd variables
+ARG FD_URL="https://github.com/sharkdp/fd/releases/download/v8.2.1/fd_8.2.1_amd64.deb"
+ARG FD_FILE="fd_8.2.1_amd64.deb"
+ARG FD_MD5SUM="abcbae7ca319d219bd1a95997fd0250a"
+
+# Install fd
+RUN curl -fL -o $FD_FILE "$FD_URL" \
+    && (echo "$FD_MD5SUM  $FD_FILE" | md5sum --quiet -c -) \
+    && dpkg -i $FD_FILE \
+    && rm -f $FD_FILE
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
+
+# Doom Emacs variables
+ARG DE_REPO="https://github.com/hlissner/doom-emacs"
+ARG DE_BRANCH="master"
+ARG DE_HASH="07fca786154551f90f36535bfb21f8ca4abd5027"
+
+# Define these for convenience
+ENV EMACS_CONFIG_DIR="$VOLS_DIR/emacs.d"
+ENV DOOM_CONFIG_DIR="$VOLS_DIR/doom.d"
+
+# Make blank directories to ensure permissions are set correctly
+RUN sudo mkdir -m 755 $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR \
+    && sudo chown $DEV_USER:$DEV_USER $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
+
+# Add links to the home directory
+RUN ln -s $EMACS_CONFIG_DIR $DEV_USER_HOME/.emacs.d \
+    && ln -s $DOOM_CONFIG_DIR $DEV_USER_HOME/.doom.d
+
+# Clone Doom to the Emacs config directory
+RUN git clone --branch $DE_BRANCH --single-branch $DE_REPO $EMACS_CONFIG_DIR \
+    && cd $EMACS_CONFIG_DIR \
+    && git reset --hard $DE_HASH
+
+# Add Doom executables to PATH
+ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
+
+# Actually install Doom, enable VTerm, and re-sync
+RUN doom install --no-color --no-env --fonts --force \
+    && sed "s/;;vterm/vterm/" -i $DOOM_CONFIG_DIR/init.el \
+    && doom sync
+
+# Build the VTerm module. We must locate the exact build directory because it's
+# name depends on the Emacs version, e.g., `build-28.1`, etc.
+RUN VTERM_BUILD_DIR=$(fd -uu -p 'build-[0-9.]+/vterm$' $EMACS_CONFIG_DIR) \
+    && cd $VTERM_BUILD_DIR \
+    && cmake -S . -B build \
+    && cmake --build build
+
+# Add VTerm integration to Bash config
+RUN { \
+        echo; \
+        echo "# When using VTerm, include the Bash integration"; \
+        echo "if [ \"\${INSIDE_EMACS}\" = \"vterm\" \\"; \
+        echo "      -a -n \"\${EMACS_VTERM_PATH}\" \\"; \
+        echo "      -a -f \"\${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh\" ]; then"; \
+        echo "    source \"\${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh\""; \
+        echo "fi"; \
+    } >> $DEV_USER_HOME/.bashrc
+
+# Persistent storage for the Emacs and Doom config directories. These
+# directories will be initialized with the Doom files from above.
+VOLUME ["$EMACS_CONFIG_DIR", "$DOOM_CONFIG_DIR"]
+
+# Copy the Emacs shim for the entry point
+COPY emacs_shim.sh /emacs_shim.sh
+
+# Launch Emacs by default
+CMD ["/emacs_shim.sh", "/bin/bash"]
+
+# Capture the MD5 sum used to ID the container
+ARG EMACS_CONTAINER_MD5SUM
+ENV EMACS_CONTAINER_MD5SUM=$EMACS_CONTAINER_MD5SUM

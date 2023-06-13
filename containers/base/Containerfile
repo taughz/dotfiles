@@ -1,0 +1,155 @@
+# base/Containerfile
+
+# Copyright (c) 2023 Tim Perkins
+
+FROM ubuntu:22.04
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Prevent DBus warning message
+ENV NO_AT_BRIDGE=1
+
+# Install essential utilities
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        sudo \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install some basic utilities
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bzip2 \
+        ca-certificates \
+        curl \
+        faketime \
+        file \
+        gnupg \
+        gzip \
+        less \
+        lz4 \
+        lzip \
+        lzop \
+        nano \
+        openssh-client \
+        p7zip \
+        tar \
+        tzdata \
+        unzip \
+        xz-utils \
+        zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install tools for network debugging
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        iproute2 \
+        iputils-arping \
+        iputils-clockdiff \
+        iputils-ping \
+        iputils-tracepath \
+        dnsutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Git variables
+ARG GIT_DEB_URL="https://ppa.launchpadcontent.net/git-core/ppa/ubuntu"
+ARG GIT_DEB_DIST="jammy"
+ARG GIT_DEB_COMP="main"
+ARG GIT_KEY_FINGERPRINT="0xe1dd270288b4e6030699e45fa1715d88e1df1f24"
+ARG GIT_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$GIT_KEY_FINGERPRINT"
+ARG GIT_KEY_FILE="/usr/share/keyrings/git-keyring.gpg"
+
+# Add Git repo
+RUN curl -fL "$GIT_KEY_URL" | gpg --dearmor > $GIT_KEY_FILE \
+    && { \
+        echo "# GIT Repo"; \
+        echo "deb [signed-by=$GIT_KEY_FILE] $GIT_DEB_URL $GIT_DEB_DIST $GIT_DEB_COMP"; \
+        echo "deb-src [signed-by=$GIT_KEY_FILE] $GIT_DEB_URL $GIT_DEB_DIST $GIT_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/git.list
+
+# Install fundamental dev tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cmake \
+        g++ \
+        gcc \
+        git \
+        make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user variables
+ARG DEV_USER="dev"
+ARG DEV_USER_UID=1000
+ARG DEV_USER_GID=$DEV_USER_UID
+ARG DEV_USER_FULLNAME=$DEV_USER
+ARG DEV_USER_HOME="/home/$DEV_USER"
+ARG DEV_USER_SHELL="/bin/bash"
+
+# Persist these variables for other container layers
+ENV DEV_USER=$DEV_USER
+ENV DEV_USER_UID=$DEV_USER_UID
+ENV DEV_USER_GID=$DEV_USER_GID
+ENV DEV_USER_FULLNAME=$DEV_USER_FULLNAME
+ENV DEV_USER_HOME=$DEV_USER_HOME
+ENV DEV_USER_SHELL=$DEV_USER_SHELL
+
+# Create non-root user
+RUN groupadd --gid $DEV_USER_GID $DEV_USER \
+    && useradd \
+        --uid $DEV_USER_UID \
+        --gid $DEV_USER_GID \
+        --comment "$DEV_USER_FULLNAME,,," \
+        --home-dir $DEV_USER_HOME \
+        --shell $DEV_USER_SHELL \
+        --create-home \
+        $DEV_USER \
+    && usermod --append --groups sudo $DEV_USER
+
+# Set up a run directory for the user
+RUN mkdir -m 755 /run/user \
+    && mkdir -m 700 /run/user/$DEV_USER_UID \
+    && chown $DEV_USER_UID:$DEV_USER_GID /run/user/$DEV_USER_UID
+
+# Set up sudo for user
+RUN echo "$DEV_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+    && sudo -u $DEV_USER touch $DEV_USER_HOME/.sudo_as_admin_successful
+
+# Make a directory for mounting volumes, to be used by other container layers
+ENV VOLS_DIR="/vols"
+RUN mkdir -m 755 $VOLS_DIR
+
+# Modify PS1 to put a * after the hostname. This is sort of useful because it
+# let's you quickly see if you are inside the container or not.
+RUN sed -i 's;PS1.*\\h;\0*;' /root/.bashrc $DEV_USER_HOME/.bashrc
+
+# Enable GPG agent by adding GPG_TTY
+RUN { \
+        echo; \
+        echo "# Set this for gpg-agent"; \
+        echo "export GPG_TTY=\$(tty)"; \
+    } >> $DEV_USER_HOME/.bashrc
+
+# Copy the login shim for the entry point
+COPY login_shim.sh /login_shim.sh
+
+# We have a somewhat complex entry point, here's the deal: Tini is a minimal
+# init that helps with signal handling. `login_shim.sh` is used to set up
+# environment variables like $USER, etc.
+ENTRYPOINT ["/usr/bin/tini", "--", "/login_shim.sh"]
+
+# By default just run Bash
+CMD ["/bin/bash"]
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
+
+# Capture the MD5 sum used to ID the container
+ARG BASE_CONTAINER_MD5SUM
+ENV BASE_CONTAINER_MD5SUM=$BASE_CONTAINER_MD5SUM
