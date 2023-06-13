@@ -1,0 +1,9 @@
+[user]
+    name = Tim Perkins
+    email = code@taughz.dev
+[push]
+    default = simple
+[rebase]
+    autosquash = true
+[commit]
+    gpgsign = true
