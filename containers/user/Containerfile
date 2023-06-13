@@ -1,0 +1,62 @@
+# user/Containerfile
+
+# Copyright (c) 2023 Tim Perkins
+
+ARG BASE_CONTAINER
+FROM $BASE_CONTAINER
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Capture old non-root user
+ARG OLD_DEV_USER=$DEV_USER
+ARG OLD_DEV_USER_UID=$DEV_USER_UID
+ARG OLD_DEV_USER_GID=$DEV_USER_GID
+ARG OLD_DEV_USER_FULLNAME=$DEV_USER_FULLNAME
+ARG OLD_DEV_USER_HOME=$DEV_USER_HOME
+ARG OLD_DEV_USER_SHELL=$DEV_USER_SHELL
+
+# These variables should always be set by the script
+ARG CUSTOM_DEV_USER="user"
+ARG CUSTOM_DEV_USER_UID=2000
+ARG CUSTOM_DEV_USER_GID=2000
+ARG CUSTOM_DEV_USER_FULLNAME="Unknown User"
+ARG CUSTOM_DEV_USER_HOME="/home/$CUSTOM_DEV_USER"
+ARG CUSTOM_DEV_USER_SHELL="/bin/bash"
+
+# Persist these variables for other container layers
+ENV DEV_USER=$CUSTOM_DEV_USER
+ENV DEV_USER_UID=$CUSTOM_DEV_USER_UID
+ENV DEV_USER_GID=$CUSTOM_DEV_USER_GID
+ENV DEV_USER_FULLNAME=$CUSTOM_DEV_USER_FULLNAME
+ENV DEV_USER_HOME=$CUSTOM_DEV_USER_HOME
+ENV DEV_USER_SHELL=$CUSTOM_DEV_USER_SHELL
+
+# Update user info, move home, and update ownership. We use the --non-unique
+# flag here because we have no control over the user's host system and they
+# might be using IDs that conflict with what's in the container. In particular,
+# on macOS the staff group (GID 20) conflicts with the dialout group (GID 20).
+RUN groupmod --new-name $DEV_USER \
+        --gid $DEV_USER_GID \
+        --non-unique \
+        $OLD_DEV_USER \
+    && usermod --login $DEV_USER \
+        --uid $DEV_USER_UID \
+        --gid $DEV_USER_GID \
+        --comment "$DEV_USER_FULLNAME,,," \
+        --home $DEV_USER_HOME \
+        --shell $DEV_USER_SHELL \
+        --move-home \
+        --non-unique \
+        $OLD_DEV_USER \
+    && if [ $DEV_USER_UID -ne $OLD_DEV_USER_UID -o $DEV_USER_GID -ne $OLD_DEV_USER_GID ]; then \
+        if [ $DEV_USER_UID -ne $OLD_DEV_USER_UID ]; then \
+            mv /run/user/$OLD_DEV_USER_UID /run/user/$DEV_USER_UID; fi; \
+        chown -R $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME; \
+        chown -R $DEV_USER_UID:$DEV_USER_GID /run/user/$DEV_USER_UID; fi \
+    && sed -i "s;$OLD_DEV_USER;$DEV_USER;" /etc/sudoers
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME

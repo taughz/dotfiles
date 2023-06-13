@@ -1,0 +1,59 @@
+# emsdk/Containerfile
+
+# Copyright (c) 2023 Tim Perkins
+
+ARG BASE_CONTAINER
+FROM $BASE_CONTAINER
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Emscripten variables
+ARG EMSDK_VER="3.1.40"
+ARG EMSDK_URL="https://github.com/emscripten-core/emsdk/archive/refs/tags/$EMSDK_VER.tar.gz"
+ARG EMSDK_FILE="emscripten-$EMSDK_VER.tar.gz"
+ARG EMSDK_MD5SUM="5c4036659aa020864dbafed119c1d0b5"
+ARG EMSDK_DIR="/opt/emscripten/$EMSDK_VER"
+ARG EMSDK_UPSTREAM_DIR="$EMSDK_DIR/upstream"
+ARG EMSDK_NODE_VER="15.14.0"
+ARG EMSDK_NODE_TOOL="node-$EMSDK_NODE_VER-64bit"
+ARG EMSDK_NODE_DIR="$EMSDK_DIR/node/${EMSDK_NODE_VER}_64bit"
+
+# Install Python
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract the Emscripten SDK
+RUN curl -fL -o $EMSDK_FILE "$EMSDK_URL" \
+    && (echo "$EMSDK_MD5SUM  $EMSDK_FILE" | md5sum --quiet -c -) \
+    && mkdir -p $EMSDK_DIR \
+    && tar -xf $EMSDK_FILE --strip-components=1 -C $EMSDK_DIR \
+    && rm -f $EMSDK_FILE
+
+# Install and activate the Emscripten SDK
+RUN $EMSDK_DIR/emsdk install $EMSDK_VER $EMSDK_NODE_TOOL \
+    && $EMSDK_DIR/emsdk activate $EMSDK_VER $EMSDK_NODE_TOOL \
+    && chown -R 0:0 $EMSDK_DIR
+
+# Rather than sourcing the emsdk_env.sh script, which would not take affect
+# until starting the container, we will set up the same environment variables
+# manually so that they are available right away. Unfortunately this might need
+# to be updated in the future to keep it in sync with the script.
+ENV EMSDK=$EMSDK_DIR
+ENV EMSDK_NODE=$EMSDK_NODE_DIR/bin/node
+ENV PATH=$EMSDK_DIR:$EMSDK_UPSTREAM_DIR/emscripten:$EMSDK_NODE_DIR/bin:$PATH
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
+
+# Capture the MD5 sum used to ID the container
+ARG EMSDK_CONTAINER_MD5SUM
+ENV EMSDK_CONTAINER_MD5SUM=$EMSDK_CONTAINER_MD5SUM
