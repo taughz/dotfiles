@@ -102,6 +102,7 @@ ENV DEV_USER_SHELL=$DEV_USER_SHELL
 # Create non-root user
 RUN groupadd --gid $DEV_USER_GID $DEV_USER \
     && useradd \
+        --no-log-init \
         --uid $DEV_USER_UID \
         --gid $DEV_USER_GID \
         --comment "$DEV_USER_FULLNAME,,," \
