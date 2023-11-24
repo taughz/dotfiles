@@ -40,6 +40,25 @@ function get_from_env() {
     echo "$env" | grep "^$var=" | cut -d = -f 2
 }
 
+# Usage: ensure_exists [f|d] MODE PATH
+#
+# Ensure that a file or directory exists. If it does not exist, create the file
+# or directory with the given permissions.
+function ensure_exists() {
+    local fod="$1"
+    local mode="$2"
+    local path="$3"
+    if [ -e "$path" ]; then
+        return 0
+    fi
+    case "$fod" in
+        "f" | "file") touch "$path";;
+        "d" | "dir") mkdir -p "$path";;
+        *) echo "ERROR: ensure_exists must specify 'f' or 'd'" >&2; return 1;;
+    esac
+    chmod "$mode" "$path"
+}
+
 # Default options
 use_tz=0
 
@@ -92,6 +111,12 @@ for vol in "${vols[@]}"; do
         docker volume create $vol > /dev/null
     fi
 done
+
+# Ensure the files and directories we expect exist
+ensure_exists f 600 $HOME/.Xauthority
+ensure_exists d 700 $HOME/.ssh
+ensure_exists d 700 $HOME/.gnupg
+ensure_exists f 644 $HOME/.gitconfig
 
 readonly -a DISPLAY_FLAGS=(
     --env "DISPLAY=$DISPLAY"
