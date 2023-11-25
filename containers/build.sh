@@ -11,12 +11,13 @@ readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 readonly CONTAINER_REPO="taughz-dev"
 
-readonly -a CONTAINERS=("BASE" "EMACS" "EMSDK" "USER")
+readonly -a CONTAINERS=("BASE" "EMACS" "EMSDK" "XPRA" "USER")
 
 readonly -A CONTAINER_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
     ["EMACS"]="$SCRIPT_DIR/emacs"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
+    ["XPRA"]="$SCRIPT_DIR/xpra"
     ["USER"]="$SCRIPT_DIR/user"
 )
 
@@ -24,6 +25,7 @@ readonly -A CONTAINER_ALPHAS=(
     ["BASE"]="b"
     ["EMACS"]="e"
     ["EMSDK"]="w"
+    ["XPRA"]="x"
     ["USER"]="u"
 )
 
@@ -38,6 +40,7 @@ Make the Taughz development container.
 
     -e | --emacs    Build the Emacs container
     -w | --emsdk    Build the EMSDK (Emscripten) container
+    -x | --xpra     Build the Xpra container
     -n | --name     Display the name of the container
     -h | --help     Display this help message
 EOF
@@ -57,6 +60,7 @@ declare -A container_requested=(
     ["BASE"]=1
     ["EMACS"]=0
     ["EMSDK"]=0
+    ["XPRA"]=0
     ["USER"]=1
 )
 show_name=0
@@ -66,6 +70,7 @@ for arg in "${@}"; do
     case "${arg}" in
         "--emacs") set -- "${@}" "-e";;
         "--emsdk") set -- "${@}" "-w";;
+        "--xpra") set -- "${@}" "-x";;
         "--name") set -- "${@}" "-n";;
         "--help") set -- "${@}" "-h";;
         *) set -- "${@}" "${arg}";;
@@ -74,10 +79,11 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "ewnh" arg &>/dev/null; do
+while getopts "ewxnh" arg &>/dev/null; do
     case "${arg}" in
         "e") container_requested["EMACS"]=1;;
         "w") container_requested["EMSDK"]=1;;
+        "x") container_requested["XPRA"]=1;;
         "n") show_name=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
