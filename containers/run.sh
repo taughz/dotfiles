@@ -117,6 +117,7 @@ ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
 ensure_exists d 700 $HOME/.gnupg
 ensure_exists f 644 $HOME/.gitconfig
+ensure_exists d 700 $HOME/.xpra
 
 readonly -a DISPLAY_FLAGS=(
     --env "DISPLAY=$DISPLAY"
@@ -136,6 +137,10 @@ readonly -a GIT_FLAGS=(
     --mount "type=bind,src=$HOME/.gitconfig,dst=$DEV_USER_HOME/.gitconfig"
 )
 
+readonly -a XPRA_FLAGS=(
+    --mount "type=bind,src=$HOME/.xpra,dst=$DEV_USER_HOME/.xpra"
+)
+
 readonly -a EMACS_FLAGS=(
     --mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR"
     --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR"
@@ -153,7 +158,7 @@ fi
 
 docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${EMACS_FLAGS[@]}" "${WORKSPACE_FLAGS[@]}" "${tz_flags[@]}" \
+    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${WORKSPACE_FLAGS[@]}" "${tz_flags[@]}" \
     "$TARGET_CONTAINER"
 
 exit 0

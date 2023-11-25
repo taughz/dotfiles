@@ -1,0 +1,38 @@
+# emsdk/Containerfile
+
+# Copyright (c) 2023 Tim Perkins
+
+ARG BASE_CONTAINER
+FROM $BASE_CONTAINER
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Xpra variables
+ARG XPRA_SOURCES_URL="https://xpra.org/repos/jammy/xpra.sources"
+ARG XPRA_SOURCES_FILE="/etc/apt/sources.list.d/xpra.sources"
+ARG XPRA_KEY_URL="https://xpra.org/xpra.asc"
+ARG XPRA_KEY_FILE="/usr/share/keyrings/xpra.asc"
+
+# Add the Xpra repo
+RUN curl -fL -o $XPRA_KEY_FILE "$XPRA_KEY_URL" \
+    && curl -fL -o $XPRA_SOURCES_FILE "$XPRA_SOURCES_URL"
+
+# Install Xpra
+RUN apt-get update \
+    && apt-get install -y \
+        xpra \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
+
+# Capture the MD5 sum used to ID the container
+ARG XPRA_CONTAINER_MD5SUM
+ENV XPRA_CONTAINER_MD5SUM=$XPRA_CONTAINER_MD5SUM
