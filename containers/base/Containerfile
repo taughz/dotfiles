@@ -125,6 +125,17 @@ RUN echo "$DEV_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
 ENV VOLS_DIR="/vols"
 RUN mkdir -m 755 $VOLS_DIR
 
+# Make a directory for shell config
+ENV SHELL_CONFIG_DIR="$VOLS_DIR/shell"
+RUN mkdir -m 755 $SHELL_CONFIG_DIR \
+    && chown $DEV_USER_UID:$DEV_USER_GID $SHELL_CONFIG_DIR
+
+# Setup Bash history
+RUN BASH_CONFIG_DIR=$SHELL_CONFIG_DIR/bash \
+    && sudo -u $DEV_USER mkdir -m 755 $BASH_CONFIG_DIR \
+    && sudo -u $DEV_USER touch $BASH_CONFIG_DIR/bash_history \
+    && sudo -u $DEV_USER ln -s $BASH_CONFIG_DIR/bash_history $DEV_USER_HOME/.bash_history
+
 # Modify PS1 to put a * after the hostname. This is sort of useful because it
 # let's you quickly see if you are inside the container or not.
 RUN sed -i 's;PS1.*\\h;\0*;' /root/.bashrc $DEV_USER_HOME/.bashrc
