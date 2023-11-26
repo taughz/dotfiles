@@ -15,6 +15,7 @@ readonly TARGET_CONTAINER="taughz-dev:latest"
 # The names of the volumes
 readonly EMACS_CONFIG_VOL="emacs-config"
 readonly DOOM_CONFIG_VOL="doom-config"
+readonly SHELL_CONFIG_VOL="shell-config"
 
 # The default projects directory
 readonly DEFAULT_PROJECTS_DIR="$HOME/Projects"
@@ -122,9 +123,10 @@ readonly DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
 readonly DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
 readonly EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR")
 readonly DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR")
+readonly SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
 
 # Check for volumes, create them if necessary
-declare -a vols=($EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
+declare -a vols=($EMACS_CONFIG_VOL $DOOM_CONFIG_VOL $SHELL_CONFIG_VOL)
 for vol in "${vols[@]}"; do
     if ! docker volume ls -q | grep -q $vol; then
         echo "Creating volume: $vol" >&2
@@ -166,6 +168,10 @@ readonly -a EMACS_FLAGS=(
     --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR"
 )
 
+readonly -a SHELL_FLAGS=(
+    --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR"
+)
+
 declare -a projects_flags=()
 if [ $mount_projects -ne 0 ]; then
     projects_basename=$(basename "$projects_dir")
@@ -180,7 +186,7 @@ fi
 
 docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
-    "$TARGET_CONTAINER"
+    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${SHELL_FLAGS[@]}" \
+    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_CONTAINER"
 
 exit 0
