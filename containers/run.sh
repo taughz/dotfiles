@@ -16,6 +16,9 @@ readonly TARGET_CONTAINER="taughz-dev:latest"
 readonly EMACS_CONFIG_VOL="emacs-config"
 readonly DOOM_CONFIG_VOL="doom-config"
 
+# The default projects directory
+readonly DEFAULT_PROJECTS_DIR="$HOME/Projects"
+
 # Usage: show_usage
 #
 # Prints help message for this script.
@@ -25,8 +28,9 @@ Usage: $(basename "$0") [-h | --help]
 
 Run the Taughz development container.
 
-    -z | --tz       Use the host timezone
-    -h | --help     Display this help message
+    -p | --projects [DIR]   Bind mount projects directory
+    -z | --tz               Use the host timezone
+    -h | --help             Display this help message
 EOF
 }
 
@@ -60,11 +64,14 @@ function ensure_exists() {
 }
 
 # Default options
+mount_projects=0
+projects_dir=$DEFAULT_PROJECTS_DIR
 use_tz=0
 
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
     case "${arg}" in
+        "--projects") set -- "${@}" "-p";;
         "--tz") set -- "${@}" "-z";;
         "--help") set -- "${@}" "-h";;
         *) set -- "${@}" "${arg}";;
@@ -73,8 +80,15 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "zh" arg &>/dev/null; do
+while getopts "pzh" arg &>/dev/null; do
     case "${arg}" in
+        "p")
+            mount_projects=1
+            [ $OPTIND -le $# ] && next_opt=${!OPTIND} || next_opt="-"
+            if ! printf "%s\n" "$next_opt" | grep -q "^-"; then
+                projects_dir=$next_opt
+                OPTIND=$((OPTIND + 1))
+            fi;;
         "z") use_tz=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
@@ -87,6 +101,12 @@ shift $((${OPTIND} - 1))
 # There are no positional arguments
 if [ ${#} -gt 0 ]; then
     show_usage
+    exit 1
+fi
+
+# Check projects directory
+if [ $mount_projects -ne 0 -a ! -d "$projects_dir" ]; then
+    echo "ERROR: Projecs directory must exist: $projects_dir" >&2
     exit 1
 fi
 
@@ -146,9 +166,11 @@ readonly -a EMACS_FLAGS=(
     --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR"
 )
 
-readonly -a WORKSPACE_FLAGS=(
-    --mount "type=bind,src=$HOME/Projects,dst=$DEV_USER_HOME/Projects"
-)
+declare -a projects_flags=()
+if [ $mount_projects -ne 0 ]; then
+    projects_basename=$(basename "$projects_dir")
+    projects_flags+=(--mount "type=bind,src=$projects_dir,dst=$DEV_USER_HOME/$projects_basename")
+fi
 
 declare -a tz_flags=()
 if [ $use_tz -ne 0 ]; then
@@ -158,7 +180,7 @@ fi
 
 docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${WORKSPACE_FLAGS[@]}" "${tz_flags[@]}" \
+    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_CONTAINER"
 
 exit 0
