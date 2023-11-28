@@ -57,6 +57,9 @@ RUN groupmod --new-name $DEV_USER \
         chown -R $DEV_USER_UID:$DEV_USER_GID /run/user/$DEV_USER_UID; fi \
     && sed -i "s;$OLD_DEV_USER;$DEV_USER;" /etc/sudoers
 
+# Copy this script to fix ownership of volumes during runtime
+COPY fix_ownership.sh /fix_ownership.sh
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
