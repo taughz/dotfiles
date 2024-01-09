@@ -36,10 +36,12 @@ readonly -A CONTAINER_ALPHAS=(
 # Prints help message for this script.
 function show_usage() {
     cat <<EOF >&2
-Usage: $(basename "$0") [-n | --name] [-h | --help]
+Usage: $(basename "$0") [-a | --all] [-c | --cpp] [-w | --emsdk] [-e | --emacs]
+            [-x | --xpra] [-n | --name] [-h | --help]
 
 Make the Taughz development container.
 
+    -a | --all      Build all containers
     -c | --cpp      Build the C++ container
     -w | --emsdk    Build the EMSDK (Emscripten) container
     -e | --emacs    Build the Emacs container
@@ -72,6 +74,7 @@ show_name=0
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
     case "${arg}" in
+        "--all") set -- "${@}" "-a";;
         "--cpp") set -- "${@}" "-c";;
         "--emsdk") set -- "${@}" "-w";;
         "--emacs") set -- "${@}" "-e";;
@@ -84,8 +87,9 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "cwexnh" arg &>/dev/null; do
+while getopts "acwexnh" arg &>/dev/null; do
     case "${arg}" in
+        "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
         "c") container_requested["CPP"]=1;;
         "w") container_requested["EMSDK"]=1;;
         "e") container_requested["EMACS"]=1;;
