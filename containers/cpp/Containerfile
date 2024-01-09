@@ -1,0 +1,65 @@
+# cpp/Containerfile
+
+# Copyright (c) 2024 Tim Perkins
+
+ARG BASE_CONTAINER
+FROM $BASE_CONTAINER
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# LLVM variables
+ARG LLVM_DEB_URL="http://apt.llvm.org/jammy/"
+ARG LLVM_DEB_DIST="llvm-toolchain-jammy-16"
+ARG LLVM_DEB_COMP="main"
+ARG LLVM_KEY_URL="https://apt.llvm.org/llvm-snapshot.gpg.key"
+ARG LLVM_KEY_FILE="/usr/share/keyrings/llvm-keyring.gpg"
+
+# Add LLVM repo
+RUN curl -fL "$LLVM_KEY_URL" | gpg --dearmor > $LLVM_KEY_FILE \
+    && { \
+        echo "# LLVM Repo"; \
+        echo "deb [signed-by=$LLVM_KEY_FILE] $LLVM_DEB_URL $LLVM_DEB_DIST $LLVM_DEB_COMP"; \
+        echo "deb-src [signed-by=$LLVM_KEY_FILE] $LLVM_DEB_URL $LLVM_DEB_DIST $LLVM_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/llvm.list
+
+# Install Clang tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        clang-16 \
+        lld-16 \
+        lldb-16 \
+        clang-format-16 \
+        clangd-16 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make aliases for some Clang tools
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 1000 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-16 1000 \
+    && update-alternatives --install /usr/bin/clang-cpp clang-cpp /usr/bin/clang-cpp-16 1000 \
+    && update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-16 1000 \
+    && update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-16 1000 \
+    && update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-16 1000 \
+    && update-alternatives --install /usr/bin/clang-format-diff clang-format-diff /usr/bin/clang-format-diff-16 1000 \
+    && update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-16 1000
+
+# Update common commands to use Clang by default. WARNING: DO NOT ATTEMPT TO USE
+# CLANG FOR BUILDING THINGS LIKE KERNEL MODULES! THAT WON'T WORK! DON'T ATTEMPT
+# TO UPDATE YOUR KERNEL AND USE DKMS! THAT WON'T WORK!
+RUN update-alternatives --install /usr/bin/cc cc /usr/bin/clang 1000 \
+    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 1000 \
+    && update-alternatives --install /usr/bin/cpp cpp /usr/bin/clang-cpp 1000 \
+    && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld 1000
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
+
+# Capture the MD5 sum used to ID the container
+ARG CPP_CONTAINER_MD5SUM
+ENV CPP_CONTAINER_MD5SUM=$CPP_CONTAINER_MD5SUM
