@@ -3,7 +3,40 @@
 # Copyright (c) 2023 Tim Perkins
 
 ARG BASE_CONTAINER
-FROM $BASE_CONTAINER
+
+# Emacs variables
+ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
+ARG EMACS_DEB_DIST="jammy"
+ARG EMACS_DEB_COMP="main"
+ARG EMACS_KEY_FINGERPRINT="0x873503a090750cdaeb0754d93ff0e01eeaafc9cd"
+ARG EMACS_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$EMACS_KEY_FINGERPRINT"
+ARG EMACS_KEY_FILE="/usr/share/keyrings/emacs-keyring.gpg"
+
+# Doom Emacs variables
+ARG DE_REPO="https://github.com/hlissner/doom-emacs"
+ARG DE_BRANCH="master"
+ARG DE_HASH="07fca786154551f90f36535bfb21f8ca4abd5027"
+ARG DE_EMACS_DIR="/vols/emacs.d"
+ARG DE_DOOM_DIR="/vols/doom.d"
+
+# The goal of this stage is to install Doom and minimal prerequisites. This is
+# done to improve caching, so even if the base image changes, we don't have to
+# do the expensive operation of Doom install, which needs to pull all the
+# extensions from Straight and so on. We can then copy all the installed files
+# to the target base image.
+FROM ubuntu:22.04 AS doom-cache
+
+ARG EMACS_DEB_URL
+ARG EMACS_DEB_DIST
+ARG EMACS_DEB_COMP
+ARG EMACS_KEY_FINGERPRINT
+ARG EMACS_KEY_URL
+ARG EMACS_KEY_FILE
+ARG DE_REPO
+ARG DE_BRANCH
+ARG DE_HASH
+ARG DE_EMACS_DIR
+ARG DE_DOOM_DIR
 
 # Ensure root user
 USER root
@@ -13,13 +46,67 @@ WORKDIR /
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
 
-# Emacs variables
-ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
-ARG EMACS_DEB_DIST="jammy"
-ARG EMACS_DEB_COMP="main"
-ARG EMACS_KEY_FINGERPRINT="0x873503a090750cdaeb0754d93ff0e01eeaafc9cd"
-ARG EMACS_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$EMACS_KEY_FINGERPRINT"
-ARG EMACS_KEY_FILE="/usr/share/keyrings/emacs-keyring.gpg"
+# Install necessary prerequisites
+RUN apt-get update \
+    && apt-get install -y \
+        curl \
+        git \
+        gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Emacs repo
+RUN curl -fL "$EMACS_KEY_URL" | gpg --dearmor > $EMACS_KEY_FILE \
+    && { \
+        echo "# Emacs Repo (kelleyk)"; \
+        echo "deb [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+        echo "deb-src [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/emacs.list
+
+# Install Emacs 28
+RUN apt-get update \
+    && apt-get install -y \
+        emacs28 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone Doom to the Emacs config directory
+RUN git clone --branch $DE_BRANCH --single-branch $DE_REPO $DE_EMACS_DIR \
+    && cd $DE_EMACS_DIR \
+    && git reset --hard $DE_HASH
+
+# Add Doom executables to PATH
+ENV PATH=$DE_EMACS_DIR/bin:$PATH
+
+# Set environment variables used by Doom
+ENV EMACSDIR=$DE_EMACS_DIR
+ENV DOOMDIR=$DE_DOOM_DIR
+
+# Initialize Doom config, enable VTerm, then sync Doom to install
+RUN mkdir -p $DE_DOOM_DIR \
+    && cp $DE_EMACS_DIR/templates/init.example.el $DE_DOOM_DIR/init.el \
+    && cp $DE_EMACS_DIR/templates/config.example.el $DE_DOOM_DIR/config.el \
+    && cp $DE_EMACS_DIR/templates/packages.example.el $DE_DOOM_DIR/packages.el \
+    && sed "s/;;vterm/vterm/" -i $DE_DOOM_DIR/init.el \
+    && doom sync --no-color --force
+
+# Now build from the actual base layer
+FROM $BASE_CONTAINER as doom
+
+ARG EMACS_DEB_URL
+ARG EMACS_DEB_DIST
+ARG EMACS_DEB_COMP
+ARG EMACS_KEY_FINGERPRINT
+ARG EMACS_KEY_URL
+ARG EMACS_KEY_FILE
+ARG DE_EMACS_DIR
+ARG DE_DOOM_DIR
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
 
 # Add Emacs repo
 RUN curl -fL "$EMACS_KEY_URL" | gpg --dearmor > $EMACS_KEY_FILE \
@@ -70,11 +157,6 @@ RUN curl -fL -o $FD_FILE "$FD_URL" \
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
 
-# Doom Emacs variables
-ARG DE_REPO="https://github.com/hlissner/doom-emacs"
-ARG DE_BRANCH="master"
-ARG DE_HASH="07fca786154551f90f36535bfb21f8ca4abd5027"
-
 # Define these for convenience
 ENV EMACS_CONFIG_DIR="$VOLS_DIR/emacs.d"
 ENV DOOM_CONFIG_DIR="$VOLS_DIR/doom.d"
@@ -87,18 +169,25 @@ RUN sudo mkdir -m 755 $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR \
 RUN ln -s $EMACS_CONFIG_DIR $DEV_USER_HOME/.emacs.d \
     && ln -s $DOOM_CONFIG_DIR $DEV_USER_HOME/.doom.d
 
-# Clone Doom to the Emacs config directory
-RUN git clone --branch $DE_BRANCH --single-branch $DE_REPO $EMACS_CONFIG_DIR \
-    && cd $EMACS_CONFIG_DIR \
-    && git reset --hard $DE_HASH
+# Straight makes heavy use of symlinks with absolute paths for its internal
+# organization. Copying those symlinks will break them, unless the absolute
+# paths stay the same. That is to say, $DE_EMACS_DIR must equal
+# $EMACS_CONFIG_DIR, etc.
+RUN test $DE_EMACS_DIR = $EMACS_CONFIG_DIR -a $DE_DOOM_DIR = $DOOM_CONFIG_DIR || exit 1
+
+# Copy files from the build layer
+COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_EMACS_DIR $EMACS_CONFIG_DIR
+COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_DOOM_DIR $DOOM_CONFIG_DIR
 
 # Add Doom executables to PATH
 ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
 
-# Actually install Doom, enable VTerm, and re-sync
-RUN doom install --no-color --no-env --fonts --force \
-    && sed "s/;;vterm/vterm/" -i $DOOM_CONFIG_DIR/init.el \
-    && doom sync
+# Install Doom fonts. What a pain this is! Emacs batch mode doesn't work with
+# Doom, so we have to use the script command to fake a PTY, so Emacs thinks it's
+# running in a proper terminal. We disregard the output.
+RUN TERM=xterm script --quiet --force --return --command \
+    "emacs -l all-the-icons --eval \"(progn (all-the-icons-install-fonts 'yes) (kill-emacs 0))\"" \
+    /dev/null
 
 # Build the VTerm module. We must locate the exact build directory because it's
 # name depends on the Emacs version, e.g., `build-28.1`, etc.
