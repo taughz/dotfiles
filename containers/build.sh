@@ -11,22 +11,22 @@ readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 readonly CONTAINER_REPO="taughz-dev"
 
-readonly -a CONTAINERS=("BASE" "EMACS" "CPP" "EMSDK" "XPRA" "USER")
+readonly -a CONTAINERS=("BASE" "CPP" "EMSDK" "EMACS" "XPRA" "USER")
 
 readonly -A CONTAINER_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
-    ["EMACS"]="$SCRIPT_DIR/emacs"
     ["CPP"]="$SCRIPT_DIR/cpp"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
+    ["EMACS"]="$SCRIPT_DIR/emacs"
     ["XPRA"]="$SCRIPT_DIR/xpra"
     ["USER"]="$SCRIPT_DIR/user"
 )
 
 readonly -A CONTAINER_ALPHAS=(
     ["BASE"]="b"
-    ["EMACS"]="e"
     ["CPP"]="c"
     ["EMSDK"]="w"
+    ["EMACS"]="e"
     ["XPRA"]="x"
     ["USER"]="u"
 )
@@ -40,9 +40,9 @@ Usage: $(basename "$0") [-n | --name] [-h | --help]
 
 Make the Taughz development container.
 
-    -e | --emacs    Build the Emacs container
     -c | --cpp      Build the C++ container
     -w | --emsdk    Build the EMSDK (Emscripten) container
+    -e | --emacs    Build the Emacs container
     -x | --xpra     Build the Xpra container
     -n | --name     Display the name of the container
     -h | --help     Display this help message
@@ -61,9 +61,9 @@ function md5sum_dir_contents() {
 # Default options
 declare -A container_requested=(
     ["BASE"]=1
-    ["EMACS"]=0
     ["CPP"]=0
     ["EMSDK"]=0
+    ["EMACS"]=0
     ["XPRA"]=0
     ["USER"]=1
 )
@@ -72,9 +72,9 @@ show_name=0
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
     case "${arg}" in
-        "--emacs") set -- "${@}" "-e";;
         "--cpp") set -- "${@}" "-c";;
         "--emsdk") set -- "${@}" "-w";;
+        "--emacs") set -- "${@}" "-e";;
         "--xpra") set -- "${@}" "-x";;
         "--name") set -- "${@}" "-n";;
         "--help") set -- "${@}" "-h";;
@@ -84,11 +84,11 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "ecwxnh" arg &>/dev/null; do
+while getopts "cwexnh" arg &>/dev/null; do
     case "${arg}" in
-        "e") container_requested["EMACS"]=1;;
         "c") container_requested["CPP"]=1;;
         "w") container_requested["EMSDK"]=1;;
+        "e") container_requested["EMACS"]=1;;
         "x") container_requested["XPRA"]=1;;
         "n") show_name=1;;
         "h") show_usage; exit 0;;
