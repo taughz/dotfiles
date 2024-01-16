@@ -33,6 +33,7 @@ RUN apt-get update \
         gnupg \
         gzip \
         less \
+        locales \
         lz4 \
         lzip \
         lzop \
@@ -56,6 +57,13 @@ RUN apt-get update \
         iputils-tracepath \
         dnsutils \
     && rm -rf /var/lib/apt/lists/*
+
+# Set up language
+ENV LANG="en_US.UTF-8"
+
+# Set up locale
+RUN locale-gen $LANG \
+    && update-locale LANG=$LANG
 
 # Git variables
 ARG GIT_DEB_URL="https://ppa.launchpadcontent.net/git-core/ppa/ubuntu"
