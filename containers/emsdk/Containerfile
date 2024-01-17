@@ -24,12 +24,6 @@ ARG EMSDK_NODE_VER="15.14.0"
 ARG EMSDK_NODE_TOOL="node-$EMSDK_NODE_VER-64bit"
 ARG EMSDK_NODE_DIR="$EMSDK_DIR/node/${EMSDK_NODE_VER}_64bit"
 
-# Install Python
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        python3 \
-    && rm -rf /var/lib/apt/lists/*
-
 # Download and extract the Emscripten SDK
 RUN curl -fL -o $EMSDK_FILE "$EMSDK_URL" \
     && (echo "$EMSDK_MD5SUM  $EMSDK_FILE" | md5sum --quiet -c -) \
