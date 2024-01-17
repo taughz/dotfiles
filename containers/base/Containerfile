@@ -155,13 +155,18 @@ RUN { \
         echo "export GPG_TTY=\$(tty)"; \
     } >> $DEV_USER_HOME/.bashrc
 
-# Copy the login shim for the entry point
-COPY login_shim.sh /login_shim.sh
+# Create directory for entry point scripts
+ENV ENTRYPOINT_DIR="/etc/entrypoint.d"
+RUN mkdir -m 755 $ENTRYPOINT_DIR
 
-# We have a somewhat complex entry point, here's the deal: Tini is a minimal
-# init that helps with signal handling. `login_shim.sh` is used to set up
-# environment variables like $USER, etc.
-ENTRYPOINT ["/usr/bin/tini", "--", "/login_shim.sh"]
+# Copy the entry point script, login shim, etc
+COPY entrypoint.sh /entrypoint.sh
+COPY login_shim.sh $ENTRYPOINT_DIR/00_login_shim.sh
+
+# Here we set the entry point to the main entry point script. This script in
+# turn execs a chain of other entry points. This allows other images to layer
+# their own entry points onto the original entry point.
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
 
 # By default just run Bash
 CMD ["/bin/bash"]
