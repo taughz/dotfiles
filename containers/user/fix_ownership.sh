@@ -2,14 +2,17 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+IFS=$'\n\t'
 
 if [ $(id -u) -eq 0 ]; then
     echo "ERROR: This script should NOT be run as root!" >&2
     exit 1
 fi
 
-if [ -z "$VOLS_DIR" -o -z "$DEV_USER_UID" -o -z "$DEV_USER_GID" ]; then
+if [ -z "${VOLS_DIR:-}" -o -z "${DEV_USER_UID:-}" -o -z "${DEV_USER_GID:-}" ]; then
     echo "ERROR: Critical environment variables are not defined!" >&2
     exit 1
 fi
