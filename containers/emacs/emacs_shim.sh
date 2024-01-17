@@ -2,7 +2,10 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+IFS=$'\n\t'
 
 # Launch Emacs in the background
 if [ -z "${NO_EMACS_LAUNCH:-}" ]; then

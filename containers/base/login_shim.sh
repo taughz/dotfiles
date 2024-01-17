@@ -2,7 +2,10 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
+IFS=$'\n\t'
 
 # When we do a typical login, it sets the environment variables such as HOME,
 # USER, LOGNAME, SHELL, TERM, etc. Docker is nice enough to set HOME for us, but
