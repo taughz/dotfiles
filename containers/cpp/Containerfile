@@ -13,6 +13,20 @@ WORKDIR /
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
 
+# Install the old clang tools, so we can override the symlinks. The problem
+# is, if we don't do this, then install something that requires Clang as a
+# dependency, installing the old Clang blows away the symlinks set up below.
+# Ideally there would be a better way to do this, for example, installing custom
+# Debian packages that set the correct symlinks.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        clang \
+        lld \
+        lldb \
+        clang-format \
+        clangd \
+    && rm -rf /var/lib/apt/lists/*
+
 # LLVM variables
 ARG LLVM_DEB_URL="http://apt.llvm.org/jammy/"
 ARG LLVM_DEB_DIST="llvm-toolchain-jammy-16"
