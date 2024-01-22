@@ -80,13 +80,13 @@ ENV PATH=$DE_EMACS_DIR/bin:$PATH
 ENV EMACSDIR=$DE_EMACS_DIR
 ENV DOOMDIR=$DE_DOOM_DIR
 
-# Initialize Doom config, enable VTerm, then sync Doom to install
+# Initialize Doom config, enable VTerm, then do Doom install
 RUN mkdir -p $DE_DOOM_DIR \
     && cp $DE_EMACS_DIR/templates/init.example.el $DE_DOOM_DIR/init.el \
     && cp $DE_EMACS_DIR/templates/config.example.el $DE_DOOM_DIR/config.el \
     && cp $DE_EMACS_DIR/templates/packages.example.el $DE_DOOM_DIR/packages.el \
     && sed "s/;;vterm/vterm/" -i $DE_DOOM_DIR/init.el \
-    && doom sync --no-color --force
+    && doom install --force --no-config --no-env --fonts
 
 # Now build from the actual base layer
 FROM $BASE_CONTAINER as doom
@@ -179,15 +179,14 @@ RUN test $DE_EMACS_DIR = $EMACS_CONFIG_DIR -a $DE_DOOM_DIR = $DOOM_CONFIG_DIR ||
 COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_EMACS_DIR $EMACS_CONFIG_DIR
 COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_DOOM_DIR $DOOM_CONFIG_DIR
 
+# Copy fonts that were installed by Doom :-(
+COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER /root/.local/share/fonts $DEV_USER_HOME/.local/share/fonts
+
+# Update the font cache
+RUN fc-cache -f
+
 # Add Doom executables to PATH
 ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
-
-# Install Doom fonts. What a pain this is! Emacs batch mode doesn't work with
-# Doom, so we have to use the script command to fake a PTY, so Emacs thinks it's
-# running in a proper terminal. We disregard the output.
-RUN TERM=xterm script --quiet --force --return --command \
-    "emacs -l all-the-icons --eval \"(progn (all-the-icons-install-fonts 'yes) (kill-emacs 0))\"" \
-    /dev/null
 
 # Build the VTerm module. We must locate the exact build directory because it's
 # name depends on the Emacs version, e.g., `build-28.1`, etc.
