@@ -122,6 +122,10 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
         $DEV_USER \
     && usermod --append --groups sudo $DEV_USER
 
+# Make local bin directory and add to path
+RUN mkdir -m 755 -p $DEV_USER_HOME/.local/bin
+ENV PATH="$DEV_USER_HOME/.local/bin:$PATH"
+
 # Set up a run directory for the user
 RUN mkdir -m 755 /run/user \
     && mkdir -m 700 /run/user/$DEV_USER_UID \
