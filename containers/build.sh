@@ -40,7 +40,8 @@ function show_usage() {
     cat <<EOF >&2
 
 Usage: $(basename "$0") [-a | --all] [-c | --cpp] [-r | --ros] [-w | --emsdk]
-            [-e | --emacs] [-x | --xpra] [-n | --name] [-h | --help]
+            [-e | --emacs] [-x | --xpra] [-k | --no-cache] [-n | --name]
+            [-h | --help]
 
 Make the Taughz development container.
 
@@ -50,6 +51,7 @@ Make the Taughz development container.
     -w | --emsdk    Build the EMSDK (Emscripten) container
     -e | --emacs    Build the Emacs container
     -x | --xpra     Build the Xpra container
+    -k | --no-cache Build without using cache
     -n | --name     Display the name of the container
     -h | --help     Display this help message
 EOF
@@ -74,6 +76,7 @@ declare -A container_requested=(
     ["XPRA"]=0
     ["USER"]=1
 )
+no_cache=0
 show_name=0
 
 # Convert long options to short options, preserving order
@@ -85,6 +88,7 @@ for arg in "${@}"; do
         "--emsdk") set -- "${@}" "-w";;
         "--emacs") set -- "${@}" "-e";;
         "--xpra") set -- "${@}" "-x";;
+        "--no-cache") set -- "${@}" "-k";;
         "--name") set -- "${@}" "-n";;
         "--help") set -- "${@}" "-h";;
         *) set -- "${@}" "${arg}";;
@@ -93,7 +97,7 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "acrwexnh" arg &>/dev/null; do
+while getopts "acrwexknh" arg &>/dev/null; do
     case "${arg}" in
         "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
         "c") container_requested["CPP"]=1;;
@@ -101,6 +105,7 @@ while getopts "acrwexnh" arg &>/dev/null; do
         "w") container_requested["EMSDK"]=1;;
         "e") container_requested["EMACS"]=1;;
         "x") container_requested["XPRA"]=1;;
+        "k") no_cache=1;;
         "n") show_name=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
@@ -178,6 +183,12 @@ for container in "${CONTAINERS[@]}"; do
     fi
 done
 
+# Add extra build arguments
+declare -a extra_buildargs=()
+if [ $no_cache -ne 0 ]; then
+    extra_buildargs=("--no-cache")
+fi
+
 # Get the user data ready
 declare -a user_buildargs=()
 if [ ${container_exists["USER"]} -eq 0 ]; then
@@ -223,7 +234,7 @@ for container in "${CONTAINERS[@]}"; do
         fi
         # Build the container!
         (cd "${CONTAINER_DIRS[$container]}" \
-            && docker build \
+            && docker build "${extra_buildargs[@]}" \
                 "${base_buildargs[@]}" "${md5sum_buildargs[@]}" "${maybe_user_buildargs[@]}" \
                 -t ${container_name[$container]} -f Containerfile .)
     else
