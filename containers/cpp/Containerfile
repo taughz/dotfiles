@@ -50,6 +50,8 @@ RUN apt-get update \
         lldb-16 \
         clang-format-16 \
         clangd-16 \
+        llvm-16-dev \
+        libclang-16-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Make aliases for some Clang tools
@@ -69,6 +71,29 @@ RUN update-alternatives --install /usr/bin/cc cc /usr/bin/clang 1000 \
     && update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 1000 \
     && update-alternatives --install /usr/bin/cpp cpp /usr/bin/clang-cpp 1000 \
     && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld 1000
+
+# Include What You Use Variables (v0.20 for use with LLVM 16)
+ARG IWYU_TAR_URL="https://include-what-you-use.org/downloads/include-what-you-use-0.20.src.tar.gz"
+
+# Install Include What You Use
+RUN IWYU_TMP=$(mktemp -d) \
+    && cd $IWYU_TMP \
+    && curl -fL "$IWYU_TAR_URL" -o iwyu.tar.gz \
+    && tar xf iwyu.tar.gz \
+    && cd include-what-you-use \
+    && cmake -DCMAKE_PREFIX_PATH=/usr/lib/llvm-16 -S . -B build \
+    && cmake --build build \
+    && cmake --build build --target install \
+    && cp -t /usr/local/bin iwyu_tool.py fix_includes.py \
+    && cd $WORKDIR \
+    && rm -rf $IWYU_TMP
+
+# Fix the IWYU resource directory, which is a required part of installation.
+# See: https://github.com/include-what-you-use/include-what-you-use/issues/100
+RUN CLANG_RES_DIR=$(clang -print-resource-dir) \
+    && IWYU_RES_DIR=$(include-what-you-use -print-resource-dir || true) \
+    && mkdir -p $(dirname $IWYU_RES_DIR) \
+    && ln -s $CLANG_RES_DIR $IWYU_RES_DIR
 
 # Switch to non-root user
 USER $DEV_USER
