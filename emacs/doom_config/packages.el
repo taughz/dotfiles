@@ -49,5 +49,7 @@
 ;; ...Or *all* packages (NOT RECOMMENDED; will likely break things)
 ;(unpin! t)
 
+(package! rg)
+
 (package! buffer-move
   :recipe (:host github :repo "taughz/buffer-move"))
