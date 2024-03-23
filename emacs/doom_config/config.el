@@ -58,6 +58,10 @@
 (add-hook 'comint-exec-hook #'config--inhibit-query-on-exit)
 (after! vterm (add-hook 'vterm-mode-hook #'config--inhibit-query-on-exit))
 
+;; Use Google C++ Style
+(add-hook! 'c++-mode-hook
+  (google-set-c-style))
+
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory "~/Org/")
