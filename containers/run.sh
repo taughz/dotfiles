@@ -195,7 +195,7 @@ if [ $use_tz -ne 0 ]; then
     tz_flags+=(--mount "type=bind,src=/etc/localtime,dst=/etc/localtime")
 fi
 
-docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
+docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${SHELL_FLAGS[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_CONTAINER"
