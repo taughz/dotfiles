@@ -62,6 +62,10 @@
 (add-hook! 'c++-mode-hook
   (google-set-c-style))
 
+;; Don't add headers all willy-nilly
+(after! lsp
+  (setq lsp-clients-clangd-args '("--header-insertion=never")))
+
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory "~/Org/")
