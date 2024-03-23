@@ -53,3 +53,9 @@
 
 (package! buffer-move
   :recipe (:host github :repo "taughz/buffer-move"))
+
+(package! google-c-style
+  :recipe (:host github
+           :repo "google/styleguide"
+           :branch "gh-pages"
+           :files ("*.el")))
