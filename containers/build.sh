@@ -39,8 +39,8 @@ readonly -A CONTAINER_ALPHAS=(
 function show_usage() {
     cat <<EOF >&2
 Usage: $(basename "$0") [-a | --all] [-c | --cpp] [-r | --ros] [-w | --emsdk]
-            [-e | --emacs] [-x | --xpra] [-k | --no-cache] [-n | --name]
-            [-h | --help]
+            [-e | --emacs] [-x | --xpra] [-u | --user] [-k | --no-cache]
+            [-n | --name] [-h | --help]
 
 Make the Taughz development container.
 
@@ -50,6 +50,7 @@ Make the Taughz development container.
     -w | --emsdk    Build the EMSDK (Emscripten) container
     -e | --emacs    Build the Emacs container
     -x | --xpra     Build the Xpra container
+    -u | --user     Build the user container
     -k | --no-cache Build without using cache
     -n | --name     Display the name of the container
     -h | --help     Display this help message
@@ -73,7 +74,7 @@ declare -A container_requested=(
     ["EMSDK"]=0
     ["EMACS"]=0
     ["XPRA"]=0
-    ["USER"]=1
+    ["USER"]=0
 )
 no_cache=0
 show_name=0
@@ -87,6 +88,7 @@ for arg in "${@}"; do
         "--emsdk") set -- "${@}" "-w";;
         "--emacs") set -- "${@}" "-e";;
         "--xpra") set -- "${@}" "-x";;
+        "--user") set -- "${@}" "-u";;
         "--no-cache") set -- "${@}" "-k";;
         "--name") set -- "${@}" "-n";;
         "--help") set -- "${@}" "-h";;
@@ -96,7 +98,7 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "acrwexknh" arg &>/dev/null; do
+while getopts "acrwexuknh" arg &>/dev/null; do
     case "${arg}" in
         "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
         "c") container_requested["CPP"]=1;;
@@ -104,6 +106,7 @@ while getopts "acrwexknh" arg &>/dev/null; do
         "w") container_requested["EMSDK"]=1;;
         "e") container_requested["EMACS"]=1;;
         "x") container_requested["XPRA"]=1;;
+        "u") container_requested["USER"]=1;;
         "k") no_cache=1;;
         "n") show_name=1;;
         "h") show_usage; exit 0;;
