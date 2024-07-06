@@ -119,8 +119,9 @@ fi
 
 # The variables from inside the container
 readonly CONTAINER_ENV=$(docker run --rm $TARGET_CONTAINER printenv)
-readonly DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
+readonly DEV_USER=$(get_from_env "$CONTAINER_ENV" "DEV_USER")
 readonly DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
+readonly DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
 readonly SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
 readonly EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR")
 readonly DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR")
@@ -135,6 +136,9 @@ for vol in "${vols[@]}"; do
         need_ownership_fix=1
     fi
 done
+
+# TODO Make this an entry point thing...
+need_ownership_fix=0
 
 # Fix ownership if necessary
 if [ $need_ownership_fix -ne 0 ]; then
@@ -152,26 +156,49 @@ ensure_exists d 700 $HOME/.gnupg
 ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.xpra
 
+# Get the user data ready
+passwd_ent=$(getent passwd $(id -u))
+user_name=$(echo ${passwd_ent} | cut -d : -f 1)
+user_uid=$(echo ${passwd_ent} | cut -d : -f 3)
+user_gid=$(echo ${passwd_ent} | cut -d : -f 4)
+user_fullname=$(echo ${passwd_ent} | cut -d : -f 5 | cut -d , -f 1)
+
+# Determine if we need to fix the user at runtime
+fixed_user=$([ $user_name != $DEV_USER -o $user_uid -ne $DEV_USER_UID ] && echo 1 || echo 0)
+
+declare -a fixed_user_flags=()
+if [ $fixed_user -ne 0 ]; then
+    echo "Detected user mismatch, user will be fixed at runtime" >&2
+    fixed_user_flags+=(--user root)
+    fixed_user_flags+=(--env "FIXED_DEV_USER=$user_name")
+    fixed_user_flags+=(--env "FIXED_DEV_USER_UID=$user_uid")
+    fixed_user_flags+=(--env "FIXED_DEV_USER_GID=$user_gid")
+    fixed_user_flags+=(--env "FIXED_DEV_USER_FULLNAME=$user_fullname")
+fi
+
+# The home directory inside the container
+readonly CHOME=$([ $fixed_user -eq 0 ] && echo $DEV_USER_HOME || echo "/home/$user_name")
+
 readonly -a DISPLAY_FLAGS=(
     --env "DISPLAY=$DISPLAY"
     --mount "type=bind,src=$XAUTHORITY,dst=/root/.Xauthority,readonly"
 )
 
 readonly -a SSH_FLAGS=(
-    --mount "type=bind,src=$HOME/.ssh,dst=$DEV_USER_HOME/.ssh"
+    --mount "type=bind,src=$HOME/.ssh,dst=$CHOME/.ssh"
 )
 
 readonly -a GPG_FLAGS=(
-    --mount "type=bind,src=$HOME/.gnupg,dst=$DEV_USER_HOME/.gnupg"
-    --mount "type=bind,src=/run/user/$(id -u)/gnupg,dst=/run/user/$DEV_USER_UID/gnupg,readonly"
+    --mount "type=bind,src=$HOME/.gnupg,dst=$CHOME/.gnupg"
+    --mount "type=bind,src=/run/user/$user_uid/gnupg,dst=/run/user/$user_uid/gnupg,readonly"
 )
 
 readonly -a GIT_FLAGS=(
-    --mount "type=bind,src=$HOME/.gitconfig,dst=$DEV_USER_HOME/.gitconfig"
+    --mount "type=bind,src=$HOME/.gitconfig,dst=$CHOME/.gitconfig"
 )
 
 readonly -a XPRA_FLAGS=(
-    --mount "type=bind,src=$HOME/.xpra,dst=$DEV_USER_HOME/.xpra"
+    --mount "type=bind,src=$HOME/.xpra,dst=$CHOME/.xpra"
 )
 
 readonly -a SHELL_FLAGS=(
@@ -187,7 +214,7 @@ fi
 declare -a projects_flags=()
 if [ $mount_projects -ne 0 ]; then
     projects_basename=$(basename "$projects_dir")
-    projects_flags+=(--mount "type=bind,src=$projects_dir,dst=$DEV_USER_HOME/$projects_basename")
+    projects_flags+=(--mount "type=bind,src=$projects_dir,dst=$CHOME/$projects_basename")
 fi
 
 declare -a tz_flags=()
@@ -198,7 +225,7 @@ fi
 
 docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
+    "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" "${emacs_flags[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_CONTAINER"
 
 exit 0
