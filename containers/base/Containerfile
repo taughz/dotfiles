@@ -18,6 +18,7 @@ ENV NO_AT_BRIDGE=1
 # Install essential utilities
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        gosu \
         sudo \
         tini \
     && rm -rf /var/lib/apt/lists/*
@@ -123,7 +124,10 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
     && usermod --append --groups sudo $DEV_USER
 
 # Make local bin directory and add to path
-RUN mkdir -m 755 -p $DEV_USER_HOME/.local/bin
+RUN mkdir -m 755 $DEV_USER_HOME/.local \
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.local \
+    && mkdir -m 755 $DEV_USER_HOME/.local/bin \
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.local/bin
 ENV PATH="$DEV_USER_HOME/.local/bin:$PATH"
 
 # Set up a run directory for the user
@@ -167,7 +171,8 @@ RUN mkdir -m 755 $ENTRYPOINT_DIR
 
 # Copy the entry point script, login shim, etc
 COPY entrypoint.sh /entrypoint.sh
-COPY login_shim.sh $ENTRYPOINT_DIR/00_login_shim.sh
+COPY fix_user.sh $ENTRYPOINT_DIR/00_fix_user.sh
+COPY login_shim.sh $ENTRYPOINT_DIR/01_login_shim.sh
 
 # Here we set the entry point to the main entry point script. This script in
 # turn execs a chain of other entry points. This allows other images to layer
