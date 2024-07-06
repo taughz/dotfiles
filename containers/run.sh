@@ -13,9 +13,9 @@ readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 readonly TARGET_CONTAINER="taughz-dev:latest"
 
 # The names of the volumes
+readonly SHELL_CONFIG_VOL="shell-config"
 readonly EMACS_CONFIG_VOL="emacs-config"
 readonly DOOM_CONFIG_VOL="doom-config"
-readonly SHELL_CONFIG_VOL="shell-config"
 
 # The default projects directory
 readonly DEFAULT_PROJECTS_DIR="$HOME/Projects"
@@ -121,13 +121,13 @@ fi
 readonly CONTAINER_ENV=$(docker run --rm $TARGET_CONTAINER printenv)
 readonly DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
 readonly DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
+readonly SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
 readonly EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR")
 readonly DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR")
-readonly SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
 
 # Check for volumes, create them if necessary
 need_ownership_fix=0
-declare -a vols=($EMACS_CONFIG_VOL $DOOM_CONFIG_VOL $SHELL_CONFIG_VOL)
+declare -a vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
 for vol in "${vols[@]}"; do
     if ! docker volume ls -q | grep -q $vol; then
         echo "Creating volume: $vol" >&2
@@ -139,9 +139,9 @@ done
 # Fix ownership if necessary
 if [ $need_ownership_fix -ne 0 ]; then
     docker run --rm  \
+        --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR" \
         --mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR" \
         --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR" \
-        --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR" \
         $TARGET_CONTAINER /fix_ownership.sh
 fi
 
@@ -174,14 +174,15 @@ readonly -a XPRA_FLAGS=(
     --mount "type=bind,src=$HOME/.xpra,dst=$DEV_USER_HOME/.xpra"
 )
 
-readonly -a EMACS_FLAGS=(
-    --mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR"
-    --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR"
-)
-
 readonly -a SHELL_FLAGS=(
     --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR"
 )
+
+declare -a emacs_flags=()
+if [ -n "$EMACS_CONFIG_DIR" -a -n "$DOOM_CONFIG_DIR" ]; then
+    emacs_flags+=(--mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR")
+    emacs_flags+=(--mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR")
+fi
 
 declare -a projects_flags=()
 if [ $mount_projects -ne 0 ]; then
@@ -197,7 +198,7 @@ fi
 
 docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${EMACS_FLAGS[@]}" "${SHELL_FLAGS[@]}" \
+    "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_CONTAINER"
 
 exit 0
