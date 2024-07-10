@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Tim Perkins
+# Copyright (c) 2024 Tim Perkins
 
 set -o errexit
 set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-if [ $(id -u) -eq 0 ]; then
-    echo "ERROR: This script should NOT be run as root!" >&2
-    exit 1
-fi
+readonly SUDO=$([ $(id -u) -ne 0 ] && echo 'sudo' || echo '')
 
 if [ -z "${VOLS_DIR:-}" -o -z "${DEV_USER_UID:-}" -o -z "${DEV_USER_GID:-}" ]; then
     echo "ERROR: Critical environment variables are not defined!" >&2
@@ -21,7 +18,7 @@ for vol in $(find $VOLS_DIR -mindepth 1 -maxdepth 1 -type d); do
     if [ $(stat -c '%u:%g' $vol) = "$DEV_USER_UID:$DEV_USER_GID" ]; then
         continue
     fi
-    sudo chown -R $DEV_USER_UID:$DEV_USER_GID $vol
+    $SUDO chown -R $DEV_USER_UID:$DEV_USER_GID $vol
 done
 
-exit 0
+exec "$@"

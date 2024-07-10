@@ -127,27 +127,13 @@ readonly EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR")
 readonly DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR")
 
 # Check for volumes, create them if necessary
-need_ownership_fix=0
 declare -a vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
 for vol in "${vols[@]}"; do
     if ! docker volume ls -q | grep -q $vol; then
         echo "Creating volume: $vol" >&2
         docker volume create $vol > /dev/null
-        need_ownership_fix=1
     fi
 done
-
-# TODO Make this an entry point thing...
-need_ownership_fix=0
-
-# Fix ownership if necessary
-if [ $need_ownership_fix -ne 0 ]; then
-    docker run --rm  \
-        --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR" \
-        --mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR" \
-        --mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR" \
-        $TARGET_CONTAINER /fix_ownership.sh
-fi
 
 # Ensure the files and directories we expect exist
 ensure_exists f 600 $HOME/.Xauthority
