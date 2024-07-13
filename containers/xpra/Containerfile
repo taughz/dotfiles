@@ -14,7 +14,7 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
 
 # Xpra variables
-ARG XPRA_SOURCES_URL="https://xpra.org/repos/jammy/xpra.sources"
+ARG XPRA_SOURCES_URL="https://raw.githubusercontent.com/Xpra-org/xpra/master/packaging/repos/jammy/xpra.sources"
 ARG XPRA_SOURCES_FILE="/etc/apt/sources.list.d/xpra.sources"
 ARG XPRA_KEY_URL="https://xpra.org/xpra.asc"
 ARG XPRA_KEY_FILE="/usr/share/keyrings/xpra.asc"
