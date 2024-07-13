@@ -42,7 +42,7 @@ function show_usage() {
 Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
             [-r | --ros] [-w | --emsdk][-e | --emacs] [-x | --xpra]
             [-u | --user] [-k | --no-cache] [-n | --name]
-            [-h | --help]
+            [-p | --plain] [-h | --help]
 
 Make the Taughz development container.
 
@@ -56,6 +56,7 @@ Make the Taughz development container.
     -u | --user         Build the user container
     -k | --no-cache     Build without using cache
     -n | --name         Display the name of the container
+    -p | --plain        Display plain progress during build
     -h | --help         Display this help message
 EOF
 }
@@ -82,6 +83,7 @@ declare -A container_requested=(
 )
 no_cache=0
 show_name=0
+plain_progress=0
 
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
@@ -96,6 +98,7 @@ for arg in "${@}"; do
         "--user") set -- "${@}" "-u";;
         "--no-cache") set -- "${@}" "-k";;
         "--name") set -- "${@}" "-n";;
+        "--plain") set -- "${@}" "-p";;
         "--help") set -- "${@}" "-h";;
         *) set -- "${@}" "${arg}";;
     esac
@@ -103,7 +106,7 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "t:acrwexuknh" arg &>/dev/null; do
+while getopts "t:acrwexuknph" arg &>/dev/null; do
     case "${arg}" in
         "t") target_tag=$OPTARG;;
         "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
@@ -115,6 +118,7 @@ while getopts "t:acrwexuknh" arg &>/dev/null; do
         "u") container_requested["USER"]=1;;
         "k") no_cache=1;;
         "n") show_name=1;;
+        "p") plain_progress=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
     esac
@@ -131,6 +135,11 @@ fi
 
 # Determine the target container
 readonly TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
+
+# Make buildkit show plain progress
+if [ $plain_progress -ne 0 ]; then
+    export BUILDKIT_PROGRESS="plain"
+fi
 
 # Get the MD5 sums of the container build contexts
 declare -A container_md5sum=()
