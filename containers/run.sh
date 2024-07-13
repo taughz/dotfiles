@@ -10,7 +10,8 @@ IFS=$'\n\t'
 readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # The container to launch
-readonly TARGET_CONTAINER="taughz-dev:latest"
+readonly CONTAINER_REPO="taughz-dev"
+readonly DEFAULT_TARGET_TAG="latest"
 
 # The names of the volumes
 readonly SHELL_CONFIG_VOL="shell-config"
@@ -25,10 +26,11 @@ readonly DEFAULT_PROJECTS_DIR="$HOME/Projects"
 # Prints help message for this script.
 function show_usage() {
     cat <<EOF >&2
-Usage: $(basename "$0") [-h | --help]
+Usage: $(basename "$0") [-t | --tag TAG] [-p | --projects [DIR]] [-z | --tz] [-h | --help]
 
 Run the Taughz development container.
 
+    -t | --tag TAG          Run the container with the given tag
     -p | --projects [DIR]   Bind mount projects directory
     -z | --tz               Use the host timezone
     -h | --help             Display this help message
@@ -65,6 +67,7 @@ function ensure_exists() {
 }
 
 # Default options
+target_tag=$DEFAULT_TARGET_TAG
 mount_projects=0
 projects_dir=$DEFAULT_PROJECTS_DIR
 use_tz=0
@@ -72,6 +75,7 @@ use_tz=0
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
     case "${arg}" in
+        "--tag") set -- "${@}" "-t";;
         "--projects") set -- "${@}" "-p";;
         "--tz") set -- "${@}" "-z";;
         "--help") set -- "${@}" "-h";;
@@ -81,8 +85,9 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "pzh" arg &>/dev/null; do
+while getopts "t:pzh" arg &>/dev/null; do
     case "${arg}" in
+        "t") target_tag=$OPTARG;;
         "p")
             mount_projects=1
             [ $OPTIND -le $# ] && next_opt=${!OPTIND} || next_opt="-"
@@ -104,6 +109,9 @@ if [ ${#} -gt 0 ]; then
     show_usage
     exit 1
 fi
+
+# Determine the target container
+readonly TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
 
 # Check projects directory
 if [ $mount_projects -ne 0 -a ! -d "$projects_dir" ]; then

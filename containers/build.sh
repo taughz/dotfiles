@@ -10,6 +10,7 @@ IFS=$'\n\t'
 readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 readonly CONTAINER_REPO="taughz-dev"
+readonly DEFAULT_TARGET_TAG="latest"
 
 readonly -a CONTAINERS=("BASE" "CPP" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
@@ -38,22 +39,24 @@ readonly -A CONTAINER_ALPHAS=(
 # Prints help message for this script.
 function show_usage() {
     cat <<EOF >&2
-Usage: $(basename "$0") [-a | --all] [-c | --cpp] [-r | --ros] [-w | --emsdk]
-            [-e | --emacs] [-x | --xpra] [-u | --user] [-k | --no-cache]
-            [-n | --name] [-h | --help]
+Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
+            [-r | --ros] [-w | --emsdk][-e | --emacs] [-x | --xpra]
+            [-u | --user] [-k | --no-cache] [-n | --name]
+            [-h | --help]
 
 Make the Taughz development container.
 
-    -a | --all      Build all containers
-    -c | --cpp      Build the C++ container
-    -r | --ros      Build the ROS container
-    -w | --emsdk    Build the EMSDK (Emscripten) container
-    -e | --emacs    Build the Emacs container
-    -x | --xpra     Build the Xpra container
-    -u | --user     Build the user container
-    -k | --no-cache Build without using cache
-    -n | --name     Display the name of the container
-    -h | --help     Display this help message
+    -t | --tag TAG      Tag the container with the given tag
+    -a | --all          Build all containers
+    -c | --cpp          Build the C++ container
+    -r | --ros          Build the ROS container
+    -w | --emsdk        Build the EMSDK (Emscripten) container
+    -e | --emacs        Build the Emacs container
+    -x | --xpra         Build the Xpra container
+    -u | --user         Build the user container
+    -k | --no-cache     Build without using cache
+    -n | --name         Display the name of the container
+    -h | --help         Display this help message
 EOF
 }
 
@@ -67,6 +70,7 @@ function md5sum_dir_contents() {
 }
 
 # Default options
+target_tag=$DEFAULT_TARGET_TAG
 declare -A container_requested=(
     ["BASE"]=1
     ["CPP"]=0
@@ -82,6 +86,7 @@ show_name=0
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
     case "${arg}" in
+        "--tag") set -- "${@}" "-t";;
         "--all") set -- "${@}" "-a";;
         "--cpp") set -- "${@}" "-c";;
         "--ros") set -- "${@}" "-r";;
@@ -98,8 +103,9 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "acrwexuknh" arg &>/dev/null; do
+while getopts "t:acrwexuknh" arg &>/dev/null; do
     case "${arg}" in
+        "t") target_tag=$OPTARG;;
         "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
         "c") container_requested["CPP"]=1;;
         "r") container_requested["ROS"]=1;;
@@ -122,6 +128,9 @@ if [ ${#} -gt 0 ]; then
     show_usage
     exit 1
 fi
+
+# Determine the target container
+readonly TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
 
 # Get the MD5 sums of the container build contexts
 declare -A container_md5sum=()
@@ -245,7 +254,7 @@ for container in "${CONTAINERS[@]}"; do
     previous_container=$container
 done
 
-# Tag the final container with the latest tag
-docker tag ${container_name["LATEST"]} "$CONTAINER_REPO:latest"
+# Tag the final container with the target tag
+docker tag ${container_name["LATEST"]} $TARGET_CONTAINER
 
 exit 0
