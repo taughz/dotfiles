@@ -13,6 +13,6 @@ if [ -z "${OLD_DEV_USER_HOME:-}" -o -z "${DEV_USER_HOME:-}" ]; then
 fi
 
 # Fix the path, replacing the old HOME directory
-export PATH="$(echo $PATH | sed "s;$OLD_DEV_USER_HOME;$DEV_USER_HOME;g")"
+PATH="$(echo $PATH | sed "s;$OLD_DEV_USER_HOME;$DEV_USER_HOME;g")"
 
 exec "$@"
