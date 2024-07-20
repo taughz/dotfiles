@@ -26,6 +26,7 @@ RUN apt-get update \
 # Install some basic utilities
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        bash-completion \
         bzip2 \
         ca-certificates \
         curl \
@@ -92,6 +93,7 @@ RUN apt-get update \
         make \
         python3 \
         python3-pip \
+        shellcheck \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user variables
