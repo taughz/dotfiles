@@ -14,9 +14,10 @@ IFS=$'\n\t'
 
 # See also: https://unix.stackexchange.com/a/76356
 
-export USER=${USER:-$(id -u --name)}
-export LOGNAME=${LOGNAME:-$(id -u --name)}
-export SHELL=${SHELL:-$(getent passwd $(id -u) | cut -d : -f 7)}
-export TERM=${TERM:-dumb}
+export USER LOGNAME SHELL TERM
+USER=${USER:-$(id -u --name)}
+LOGNAME=${LOGNAME:-$(id -u --name)}
+SHELL=${SHELL:-$(getent passwd $(id -u) | cut -d : -f 7)}
+TERM=${TERM:-dumb}
 
 exec "$@"

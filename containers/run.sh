@@ -7,19 +7,19 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # The container to launch
-readonly CONTAINER_REPO="taughz-dev"
-readonly DEFAULT_TARGET_TAG="latest"
+CONTAINER_REPO="taughz-dev"
+DEFAULT_TARGET_TAG="latest"
 
 # The names of the volumes
-readonly SHELL_CONFIG_VOL="shell-config"
-readonly EMACS_CONFIG_VOL="emacs-config"
-readonly DOOM_CONFIG_VOL="doom-config"
+SHELL_CONFIG_VOL="shell-config"
+EMACS_CONFIG_VOL="emacs-config"
+DOOM_CONFIG_VOL="doom-config"
 
 # The default projects directory
-readonly DEFAULT_PROJECTS_DIR="$HOME/Projects"
+DEFAULT_PROJECTS_DIR="$HOME/Projects"
 
 # Usage: show_usage
 #
@@ -111,7 +111,7 @@ if [ ${#} -gt 0 ]; then
 fi
 
 # Determine the target container
-readonly TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
+TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
 
 # Check projects directory
 if [ $mount_projects -ne 0 -a ! -d "$projects_dir" ]; then
@@ -126,16 +126,16 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # The variables from inside the container
-readonly CONTAINER_ENV=$(docker run --rm $TARGET_CONTAINER printenv)
-readonly DEV_USER=$(get_from_env "$CONTAINER_ENV" "DEV_USER")
-readonly DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
-readonly DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
-readonly SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
-readonly EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR")
-readonly DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR")
+CONTAINER_ENV=$(docker run --rm $TARGET_CONTAINER printenv)
+DEV_USER=$(get_from_env "$CONTAINER_ENV" "DEV_USER")
+DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
+DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
+SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
+EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR" || true)
+DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR" || true)
 
 # Check for volumes, create them if necessary
-declare -a vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
+vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
 for vol in "${vols[@]}"; do
     if ! docker volume ls -q | grep -q $vol; then
         echo "Creating volume: $vol" >&2
@@ -160,7 +160,7 @@ user_fullname=$(echo ${passwd_ent} | cut -d : -f 5 | cut -d , -f 1)
 # Determine if we need to fix the user at runtime
 fixed_user=$([ $user_name != $DEV_USER -o $user_uid -ne $DEV_USER_UID ] && echo 1 || echo 0)
 
-declare -a fixed_user_flags=()
+fixed_user_flags=()
 if [ $fixed_user -ne 0 ]; then
     echo "Detected user mismatch, user will be fixed at runtime" >&2
     fixed_user_flags+=(--user root)
@@ -171,47 +171,47 @@ if [ $fixed_user -ne 0 ]; then
 fi
 
 # The home directory inside the container
-readonly CHOME=$([ $fixed_user -eq 0 ] && echo $DEV_USER_HOME || echo "/home/$user_name")
+CHOME=$([ $fixed_user -eq 0 ] && echo $DEV_USER_HOME || echo "/home/$user_name")
 
-readonly -a DISPLAY_FLAGS=(
+DISPLAY_FLAGS=(
     --env "DISPLAY=$DISPLAY"
     --mount "type=bind,src=$XAUTHORITY,dst=/root/.Xauthority,readonly"
 )
 
-readonly -a SSH_FLAGS=(
+SSH_FLAGS=(
     --mount "type=bind,src=$HOME/.ssh,dst=$CHOME/.ssh"
 )
 
-readonly -a GPG_FLAGS=(
+GPG_FLAGS=(
     --mount "type=bind,src=$HOME/.gnupg,dst=$CHOME/.gnupg"
     --mount "type=bind,src=/run/user/$user_uid/gnupg,dst=/run/user/$user_uid/gnupg,readonly"
 )
 
-readonly -a GIT_FLAGS=(
+GIT_FLAGS=(
     --mount "type=bind,src=$HOME/.gitconfig,dst=$CHOME/.gitconfig"
 )
 
-readonly -a XPRA_FLAGS=(
+XPRA_FLAGS=(
     --mount "type=bind,src=$HOME/.xpra,dst=$CHOME/.xpra"
 )
 
-readonly -a SHELL_FLAGS=(
+SHELL_FLAGS=(
     --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR"
 )
 
-declare -a emacs_flags=()
+emacs_flags=()
 if [ -n "$EMACS_CONFIG_DIR" -a -n "$DOOM_CONFIG_DIR" ]; then
     emacs_flags+=(--mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR")
     emacs_flags+=(--mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR")
 fi
 
-declare -a projects_flags=()
+projects_flags=()
 if [ $mount_projects -ne 0 ]; then
     projects_basename=$(basename "$projects_dir")
     projects_flags+=(--mount "type=bind,src=$projects_dir,dst=$CHOME/$projects_basename")
 fi
 
-declare -a tz_flags=()
+tz_flags=()
 if [ $use_tz -ne 0 ]; then
     tz_flags+=(--mount "type=bind,src=/etc/timezone,dst=/etc/timezone")
     tz_flags+=(--mount "type=bind,src=/etc/localtime,dst=/etc/localtime")
