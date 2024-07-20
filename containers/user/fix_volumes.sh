@@ -7,7 +7,7 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-readonly SUDO=$([ $(id -u) -ne 0 ] && echo 'sudo' || echo '')
+SUDO=$([ $(id -u) -ne 0 ] && echo 'sudo' || echo '')
 
 if [ -z "${VOLS_DIR:-}" -o -z "${DEV_USER_UID:-}" -o -z "${DEV_USER_GID:-}" ]; then
     echo "ERROR: Critical environment variables are not defined!" >&2

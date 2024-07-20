@@ -7,9 +7,9 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-readonly -a DOCKER_CONFLICT_PKGS=(
+DOCKER_CONFLICT_PKGS=(
     "docker.io"
     "docker-doc"
     "docker-compose"
@@ -18,7 +18,7 @@ readonly -a DOCKER_CONFLICT_PKGS=(
     "runc"
 )
 
-readonly -a DOCKER_PKGS=(
+DOCKER_PKGS=(
     "docker-ce"
     "docker-ce-cli"
     "containerd.io"
@@ -26,12 +26,12 @@ readonly -a DOCKER_PKGS=(
     "docker-compose-plugin"
 )
 
-readonly DOCKER_DEB_URL="https://download.docker.com/linux/ubuntu"
-readonly DOCKER_DEB_DIST="jammy"
-readonly DOCKER_DEB_COMP="stable"
-readonly DOCKER_KEY_URL="https://download.docker.com/linux/ubuntu/gpg"
-readonly DOCKER_KEY_FILE="/usr/share/keyrings/docker-keyring.gpg"
-readonly DOCKER_REPO_FILE="/etc/apt/sources.list.d/docker.list"
+DOCKER_DEB_URL="https://download.docker.com/linux/ubuntu"
+DOCKER_DEB_DIST="jammy"
+DOCKER_DEB_COMP="stable"
+DOCKER_KEY_URL="https://download.docker.com/linux/ubuntu/gpg"
+DOCKER_KEY_FILE="/usr/share/keyrings/docker-keyring.gpg"
+DOCKER_REPO_FILE="/etc/apt/sources.list.d/docker.list"
 
 # Check for root
 if [ $(id -u) -eq 0 ]; then

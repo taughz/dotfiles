@@ -7,14 +7,14 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-readonly SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-readonly CONTAINER_REPO="taughz-dev"
-readonly DEFAULT_TARGET_TAG="latest"
+CONTAINER_REPO="taughz-dev"
+DEFAULT_TARGET_TAG="latest"
 
-readonly -a CONTAINERS=("BASE" "CPP" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
+CONTAINERS=("BASE" "CPP" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
-readonly -A CONTAINER_DIRS=(
+declare -A CONTAINER_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
     ["CPP"]="$SCRIPT_DIR/cpp"
     ["ROS"]="$SCRIPT_DIR/ros"
@@ -24,7 +24,7 @@ readonly -A CONTAINER_DIRS=(
     ["USER"]="$SCRIPT_DIR/user"
 )
 
-readonly -A CONTAINER_ALPHAS=(
+declare -A CONTAINER_ALPHAS=(
     ["BASE"]="b"
     ["CPP"]="c"
     ["ROS"]="r"
@@ -65,8 +65,9 @@ EOF
 #
 # Get the combined MD5 sum of every file in a directory.
 function md5sum_dir_contents() {
-    local target_dir="$1"
-    local -a target_files=($(find "$target_dir" -type f | LC_ALL=C sort))
+    local target_dir target_files
+    target_dir="$1"
+    target_files=($(find "$target_dir" -type f | LC_ALL=C sort))
     cat "${target_files[@]}" | md5sum - | cut -d ' ' -f 1
 }
 
@@ -134,7 +135,7 @@ if [ ${#} -gt 0 ]; then
 fi
 
 # Determine the target container
-readonly TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
+TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
 
 # Make buildkit show plain progress
 if [ $plain_progress -ne 0 ]; then
@@ -204,13 +205,13 @@ for container in "${CONTAINERS[@]}"; do
 done
 
 # Add extra build arguments
-declare -a extra_buildargs=()
+extra_buildargs=()
 if [ $no_cache -ne 0 ]; then
     extra_buildargs=("--no-cache")
 fi
 
 # Get the user data ready
-declare -a user_buildargs=()
+user_buildargs=()
 if [ ${container_exists["USER"]} -eq 0 ]; then
     passwd_ent=$(getent passwd $(id -u))
     user_name=$(echo ${passwd_ent} | cut -d : -f 1)
@@ -234,21 +235,21 @@ for container in "${CONTAINERS[@]}"; do
     if [ ${container_exists[$container]} -eq 0 ]; then
         echo "Building: ${container_name[$container]}"
         # Set the base container, except for the base container
-        declare -a base_buildargs=()
+        base_buildargs=()
         if [ $container != "BASE" ]; then
             base_buildargs=(
                 "--build-arg" "BASE_CONTAINER=${container_name[$previous_container]}"
             )
         fi
         # Set the md5sum, except for the user container
-        declare -a md5sum_buildargs=()
+        md5sum_buildargs=()
         if [ $container != "USER" ]; then
             md5sum_buildargs=(
                 "--build-arg" "${container}_CONTAINER_MD5SUM=${container_md5sum[$container]}"
             )
         fi
         # Set the user variables, only for the user container
-        declare -a maybe_user_buildargs=()
+        maybe_user_buildargs=()
         if [ $container = "USER" ]; then
             maybe_user_buildargs=("${user_buildargs[@]}")
         fi

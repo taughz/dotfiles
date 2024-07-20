@@ -31,10 +31,10 @@ if [ -z "${DEV_USER:-}" -o -z "${DEV_USER_UID:-}" -o -z "${DEV_USER_GID:-}" \
 fi
 
 # Save the old user values (but don't export them)
-readonly OLD_DEV_USER=$DEV_USER
-readonly OLD_DEV_USER_UID=$DEV_USER_UID
-readonly OLD_DEV_USER_GID=$DEV_USER_GID
-readonly OLD_DEV_USER_HOME=$DEV_USER_HOME
+OLD_DEV_USER=$DEV_USER
+OLD_DEV_USER_UID=$DEV_USER_UID
+OLD_DEV_USER_GID=$DEV_USER_GID
+OLD_DEV_USER_HOME=$DEV_USER_HOME
 
 # We need to override the environment variables set within the container
 export DEV_USER=$FIXED_DEV_USER
@@ -88,7 +88,7 @@ fi
 sed -i "s;$OLD_DEV_USER;$DEV_USER;" /etc/sudoers
 
 # Update necessary environment variables
-export PATH=$(echo $PATH | sed "s;$OLD_DEV_USER_HOME;$DEV_USER_HOME;g")
+PATH=$(echo $PATH | sed "s;$OLD_DEV_USER_HOME;$DEV_USER_HOME;g")
 
 # Switch to the new home directory
 cd $DEV_USER_HOME

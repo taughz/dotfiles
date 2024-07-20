@@ -18,7 +18,7 @@ if [ ! -d $ENTRYPOINT_DIR ]; then
 fi
 
 # Get the list of all entry points to be run together
-readonly -a ENTRYPOINTS=($(find $ENTRYPOINT_DIR -name '*.sh' -type f | LC_ALL=C sort))
+ENTRYPOINTS=($(find $ENTRYPOINT_DIR -name '*.sh' -type f | LC_ALL=C sort))
 
 # Exec the chain of entry points. For this to work, each entry point must end
 # with `exec "$@"` to invoke the next entry point in the chain.
