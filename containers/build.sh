@@ -126,7 +126,7 @@ while getopts "t:acrwexuknph" arg &>/dev/null; do
 done
 
 # Shift positional arguments into place
-shift $((${OPTIND} - 1))
+shift $((OPTIND - 1))
 
 # There are no positional arguments
 if [ ${#} -gt 0 ]; then

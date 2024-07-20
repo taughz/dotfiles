@@ -1,0 +1,6 @@
+disable=SC1090                  # Don't care about following source
+disable=SC2001                  # Becasue this is Bash specific
+disable=SC2046,SC2086           # Because quoting everything is overkill
+disable=SC2064                  # Because I want immediate trap eval
+disable=SC2166                  # Because -a and -o are fine
+disable=SC2206,SC2207,SC2044    # Because we always use IFS=$'\n\t'
