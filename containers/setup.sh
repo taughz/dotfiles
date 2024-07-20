@@ -7,8 +7,6 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-
 DOCKER_CONFLICT_PKGS=(
     "docker.io"
     "docker-doc"

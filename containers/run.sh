@@ -7,8 +7,6 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-
 # The container to launch
 CONTAINER_REPO="taughz-dev"
 DEFAULT_TARGET_TAG="latest"
@@ -102,7 +100,7 @@ while getopts "t:pzh" arg &>/dev/null; do
 done
 
 # Shift positional arguments into place
-shift $((${OPTIND} - 1))
+shift $((OPTIND - 1))
 
 # There are no positional arguments
 if [ ${#} -gt 0 ]; then
