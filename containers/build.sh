@@ -12,11 +12,12 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 CONTAINER_REPO="taughz-dev"
 DEFAULT_TARGET_TAG="latest"
 
-CONTAINERS=("BASE" "CPP" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
+CONTAINERS=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
 declare -A CONTAINER_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
     ["CPP"]="$SCRIPT_DIR/cpp"
+    ["PYTHON"]="$SCRIPT_DIR/python"
     ["ROS"]="$SCRIPT_DIR/ros"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
     ["EMACS"]="$SCRIPT_DIR/emacs"
@@ -27,6 +28,7 @@ declare -A CONTAINER_DIRS=(
 declare -A CONTAINER_ALPHAS=(
     ["BASE"]="b"
     ["CPP"]="c"
+    ["PYTHON"]="p"
     ["ROS"]="r"
     ["EMSDK"]="w"
     ["EMACS"]="e"
@@ -40,15 +42,16 @@ declare -A CONTAINER_ALPHAS=(
 function show_usage() {
     cat <<EOF >&2
 Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
-            [-r | --ros] [-w | --emsdk][-e | --emacs] [-x | --xpra]
-            [-u | --user] [-k | --no-cache] [-n | --name]
-            [-p | --plain] [-h | --help]
+            [-p | --python] [-r | --ros] [-w | --emsdk][-e | --emacs]
+            [-x | --xpra] [-u | --user] [-k | --no-cache] [-n | --name]
+            [-l | --log] [-h | --help]
 
 Make the Taughz development container.
 
     -t | --tag TAG      Tag the container with the given tag
     -a | --all          Build all containers
     -c | --cpp          Build the C++ container
+    -p | --python       Build the Python container
     -r | --ros          Build the ROS container
     -w | --emsdk        Build the EMSDK (Emscripten) container
     -e | --emacs        Build the Emacs container
@@ -56,7 +59,7 @@ Make the Taughz development container.
     -u | --user         Build the user container
     -k | --no-cache     Build without using cache
     -n | --name         Display the name of the container
-    -p | --plain        Display plain progress during build
+    -l | --log          Display plain progress during build
     -h | --help         Display this help message
 EOF
 }
@@ -76,6 +79,7 @@ target_tag=$DEFAULT_TARGET_TAG
 declare -A container_requested=(
     ["BASE"]=1
     ["CPP"]=0
+    ["PYTHON"]=0
     ["ROS"]=0
     ["EMSDK"]=0
     ["EMACS"]=0
@@ -84,7 +88,7 @@ declare -A container_requested=(
 )
 no_cache=0
 show_name=0
-plain_progress=0
+show_log=0
 
 # Convert long options to short options, preserving order
 for arg in "${@}"; do
@@ -92,6 +96,7 @@ for arg in "${@}"; do
         "--tag") set -- "${@}" "-t";;
         "--all") set -- "${@}" "-a";;
         "--cpp") set -- "${@}" "-c";;
+        "--python") set -- "${@}" "-p";;
         "--ros") set -- "${@}" "-r";;
         "--emsdk") set -- "${@}" "-w";;
         "--emacs") set -- "${@}" "-e";;
@@ -99,7 +104,7 @@ for arg in "${@}"; do
         "--user") set -- "${@}" "-u";;
         "--no-cache") set -- "${@}" "-k";;
         "--name") set -- "${@}" "-n";;
-        "--plain") set -- "${@}" "-p";;
+        "--log") set -- "${@}" "-l";;
         "--help") set -- "${@}" "-h";;
         *) set -- "${@}" "${arg}";;
     esac
@@ -107,11 +112,12 @@ for arg in "${@}"; do
 done
 
 # Parse short options using getopts
-while getopts "t:acrwexuknph" arg &>/dev/null; do
+while getopts "t:acprwexuknlh" arg &>/dev/null; do
     case "${arg}" in
         "t") target_tag=$OPTARG;;
         "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
         "c") container_requested["CPP"]=1;;
+        "p") container_requested["PYTHON"]=1;;
         "r") container_requested["ROS"]=1;;
         "w") container_requested["EMSDK"]=1;;
         "e") container_requested["EMACS"]=1;;
@@ -119,7 +125,7 @@ while getopts "t:acrwexuknph" arg &>/dev/null; do
         "u") container_requested["USER"]=1;;
         "k") no_cache=1;;
         "n") show_name=1;;
-        "p") plain_progress=1;;
+        "l") show_log=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
     esac
@@ -138,7 +144,7 @@ fi
 TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
 
 # Make buildkit show plain progress
-if [ $plain_progress -ne 0 ]; then
+if [ $show_log -ne 0 ]; then
     export BUILDKIT_PROGRESS="plain"
 fi
 
