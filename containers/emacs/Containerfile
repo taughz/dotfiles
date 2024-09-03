@@ -2,7 +2,7 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-ARG BASE_CONTAINER
+ARG BASE_IMAGE="scratch"
 
 # Emacs variables
 ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
@@ -89,7 +89,7 @@ RUN mkdir -p $DE_DOOM_DIR \
     && doom install --force --no-config --no-env --fonts
 
 # Now build from the actual base layer
-FROM $BASE_CONTAINER as doom
+FROM $BASE_IMAGE as doom
 
 ARG EMACS_DEB_URL
 ARG EMACS_DEB_DIST
@@ -215,7 +215,3 @@ COPY emacs_shim.sh /emacs_shim.sh
 
 # Launch Emacs by default
 CMD ["/emacs_shim.sh", "/bin/bash"]
-
-# Capture the MD5 sum used to ID the container
-ARG EMACS_CONTAINER_MD5SUM
-ENV EMACS_CONTAINER_MD5SUM=$EMACS_CONTAINER_MD5SUM

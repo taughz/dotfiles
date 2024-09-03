@@ -188,7 +188,3 @@ CMD ["/bin/bash"]
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
-
-# Capture the MD5 sum used to ID the container
-ARG BASE_CONTAINER_MD5SUM
-ENV BASE_CONTAINER_MD5SUM=$BASE_CONTAINER_MD5SUM

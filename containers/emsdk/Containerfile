@@ -2,8 +2,8 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-ARG BASE_CONTAINER
-FROM $BASE_CONTAINER
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
 
 # Ensure root user
 USER root
@@ -47,7 +47,3 @@ ENV PATH=$EMSDK_DIR:$EMSDK_UPSTREAM_DIR/emscripten:$EMSDK_NODE_DIR/bin:$PATH
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
-
-# Capture the MD5 sum used to ID the container
-ARG EMSDK_CONTAINER_MD5SUM
-ENV EMSDK_CONTAINER_MD5SUM=$EMSDK_CONTAINER_MD5SUM

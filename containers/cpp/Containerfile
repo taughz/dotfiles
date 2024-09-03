@@ -2,8 +2,8 @@
 
 # Copyright (c) 2024 Tim Perkins
 
-ARG BASE_CONTAINER
-FROM $BASE_CONTAINER
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
 
 # Ensure root user
 USER root
@@ -98,7 +98,3 @@ RUN CLANG_RES_DIR=$(clang -print-resource-dir) \
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
-
-# Capture the MD5 sum used to ID the container
-ARG CPP_CONTAINER_MD5SUM
-ENV CPP_CONTAINER_MD5SUM=$CPP_CONTAINER_MD5SUM
