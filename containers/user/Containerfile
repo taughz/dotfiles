@@ -2,8 +2,8 @@
 
 # Copyright (c) 2023 Tim Perkins
 
-ARG BASE_CONTAINER
-FROM $BASE_CONTAINER
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
 
 # Ensure root user
 USER root

@@ -71,20 +71,20 @@ projects_dir=$DEFAULT_PROJECTS_DIR
 use_tz=0
 
 # Convert long options to short options, preserving order
-for arg in "${@}"; do
-    case "${arg}" in
-        "--tag") set -- "${@}" "-t";;
-        "--projects") set -- "${@}" "-p";;
-        "--tz") set -- "${@}" "-z";;
-        "--help") set -- "${@}" "-h";;
-        *) set -- "${@}" "${arg}";;
+for arg in "$@"; do
+    case "$arg" in
+        "--tag") set -- "$@" "-t";;
+        "--projects") set -- "$@" "-p";;
+        "--tz") set -- "$@" "-z";;
+        "--help") set -- "$@" "-h";;
+        *) set -- "$@" "$arg";;
     esac
     shift
 done
 
 # Parse short options using getopts
-while getopts "t:pzh" arg &>/dev/null; do
-    case "${arg}" in
+while getopts "t:pzh" arg &> /dev/null; do
+    case "$arg" in
         "t") target_tag=$OPTARG;;
         "p")
             mount_projects=1
@@ -103,7 +103,7 @@ done
 shift $((OPTIND - 1))
 
 # There are no positional arguments
-if [ ${#} -gt 0 ]; then
+if [ $# -gt 0 ]; then
     show_usage
     exit 1
 fi
@@ -150,10 +150,10 @@ ensure_exists d 700 $HOME/.xpra
 
 # Get the user data ready
 passwd_ent=$(getent passwd $(id -u))
-user_name=$(echo ${passwd_ent} | cut -d : -f 1)
-user_uid=$(echo ${passwd_ent} | cut -d : -f 3)
-user_gid=$(echo ${passwd_ent} | cut -d : -f 4)
-user_fullname=$(echo ${passwd_ent} | cut -d : -f 5 | cut -d , -f 1)
+user_name=$(echo $passwd_ent | cut -d : -f 1)
+user_uid=$(echo $passwd_ent | cut -d : -f 3)
+user_gid=$(echo $passwd_ent | cut -d : -f 4)
+user_fullname=$(echo $passwd_ent | cut -d : -f 5 | cut -d , -f 1)
 
 # Determine if we need to fix the user at runtime
 fixed_user=$([ $user_name != $DEV_USER -o $user_uid -ne $DEV_USER_UID ] && echo 1 || echo 0)

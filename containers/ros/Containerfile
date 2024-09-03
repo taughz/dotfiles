@@ -2,8 +2,8 @@
 
 # Copyright (c) 2024 Tim Perkins
 
-ARG BASE_CONTAINER
-FROM $BASE_CONTAINER
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
 
 # Ensure root user
 USER root
@@ -81,7 +81,3 @@ RUN { \
         echo "# Source extra ROS shell helpers"; \
         echo "source \"\$HOME/.bashrc_ros\""; \
     } >> $DEV_USER_HOME/.bashrc
-
-# Capture the MD5 sum used to ID the container
-ARG ROS_CONTAINER_MD5SUM
-ENV ROS_CONTAINER_MD5SUM=$ROS_CONTAINER_MD5SUM

@@ -9,12 +9,14 @@ IFS=$'\n\t'
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-CONTAINER_REPO="taughz-dev"
+HN2B="hn2b.sh"
+
+IMAGE_REPO="taughz-dev"
 DEFAULT_TARGET_TAG="latest"
 
-CONTAINERS=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
+IMAGES=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
-declare -A CONTAINER_DIRS=(
+declare -A IMAGE_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
     ["CPP"]="$SCRIPT_DIR/cpp"
     ["PYTHON"]="$SCRIPT_DIR/python"
@@ -23,17 +25,6 @@ declare -A CONTAINER_DIRS=(
     ["EMACS"]="$SCRIPT_DIR/emacs"
     ["XPRA"]="$SCRIPT_DIR/xpra"
     ["USER"]="$SCRIPT_DIR/user"
-)
-
-declare -A CONTAINER_ALPHAS=(
-    ["BASE"]="b"
-    ["CPP"]="c"
-    ["PYTHON"]="p"
-    ["ROS"]="r"
-    ["EMSDK"]="w"
-    ["EMACS"]="e"
-    ["XPRA"]="x"
-    ["USER"]="u"
 )
 
 # Usage: show_usage
@@ -46,37 +37,27 @@ Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
             [-x | --xpra] [-u | --user] [-k | --no-cache] [-n | --name]
             [-l | --log] [-h | --help]
 
-Make the Taughz development container.
+Make the Taughz development image.
 
-    -t | --tag TAG      Tag the container with the given tag
-    -a | --all          Build all containers
-    -c | --cpp          Build the C++ container
-    -p | --python       Build the Python container
-    -r | --ros          Build the ROS container
-    -w | --emsdk        Build the EMSDK (Emscripten) container
-    -e | --emacs        Build the Emacs container
-    -x | --xpra         Build the Xpra container
-    -u | --user         Build the user container
+    -t | --tag TAG      Tag the image with the given tag
+    -a | --all          Build all layers
+    -c | --cpp          Build the C++ layer
+    -p | --python       Build the Python layer
+    -r | --ros          Build the ROS layer
+    -w | --emsdk        Build the EMSDK (Emscripten) layer
+    -e | --emacs        Build the Emacs layer
+    -x | --xpra         Build the Xpra layer
+    -u | --user         Build the user layer
     -k | --no-cache     Build without using cache
-    -n | --name         Display the name of the container
+    -n | --name         Display the name of the layer
     -l | --log          Display plain progress during build
     -h | --help         Display this help message
 EOF
 }
 
-# Usage: md5sum_dir_contents DIR
-#
-# Get the combined MD5 sum of every file in a directory.
-function md5sum_dir_contents() {
-    local target_dir target_files
-    target_dir="$1"
-    target_files=($(find "$target_dir" -type f | LC_ALL=C sort))
-    cat "${target_files[@]}" | md5sum - | cut -d ' ' -f 1
-}
-
 # Default options
 target_tag=$DEFAULT_TARGET_TAG
-declare -A container_requested=(
+declare -A layer_requested=(
     ["BASE"]=1
     ["CPP"]=0
     ["PYTHON"]=0
@@ -91,38 +72,38 @@ show_name=0
 show_log=0
 
 # Convert long options to short options, preserving order
-for arg in "${@}"; do
-    case "${arg}" in
-        "--tag") set -- "${@}" "-t";;
-        "--all") set -- "${@}" "-a";;
-        "--cpp") set -- "${@}" "-c";;
-        "--python") set -- "${@}" "-p";;
-        "--ros") set -- "${@}" "-r";;
-        "--emsdk") set -- "${@}" "-w";;
-        "--emacs") set -- "${@}" "-e";;
-        "--xpra") set -- "${@}" "-x";;
-        "--user") set -- "${@}" "-u";;
-        "--no-cache") set -- "${@}" "-k";;
-        "--name") set -- "${@}" "-n";;
-        "--log") set -- "${@}" "-l";;
-        "--help") set -- "${@}" "-h";;
-        *) set -- "${@}" "${arg}";;
+for arg in "$@"; do
+    case "$arg" in
+        "--tag") set -- "$@" "-t";;
+        "--all") set -- "$@" "-a";;
+        "--cpp") set -- "$@" "-c";;
+        "--python") set -- "$@" "-p";;
+        "--ros") set -- "$@" "-r";;
+        "--emsdk") set -- "$@" "-w";;
+        "--emacs") set -- "$@" "-e";;
+        "--xpra") set -- "$@" "-x";;
+        "--user") set -- "$@" "-u";;
+        "--no-cache") set -- "$@" "-k";;
+        "--name") set -- "$@" "-n";;
+        "--log") set -- "$@" "-l";;
+        "--help") set -- "$@" "-h";;
+        *) set -- "$@" "$arg";;
     esac
     shift
 done
 
 # Parse short options using getopts
-while getopts "t:acprwexuknlh" arg &>/dev/null; do
-    case "${arg}" in
+while getopts "t:acprwexuknlh" arg &> /dev/null; do
+    case "$arg" in
         "t") target_tag=$OPTARG;;
-        "a") for co in "${CONTAINERS[@]}"; do container_requested[$co]=1; done;;
-        "c") container_requested["CPP"]=1;;
-        "p") container_requested["PYTHON"]=1;;
-        "r") container_requested["ROS"]=1;;
-        "w") container_requested["EMSDK"]=1;;
-        "e") container_requested["EMACS"]=1;;
-        "x") container_requested["XPRA"]=1;;
-        "u") container_requested["USER"]=1;;
+        "a") for co in "${IMAGES[@]}"; do layer_requested[$co]=1; done;;
+        "c") layer_requested["CPP"]=1;;
+        "p") layer_requested["PYTHON"]=1;;
+        "r") layer_requested["ROS"]=1;;
+        "w") layer_requested["EMSDK"]=1;;
+        "e") layer_requested["EMACS"]=1;;
+        "x") layer_requested["XPRA"]=1;;
+        "u") layer_requested["USER"]=1;;
         "k") no_cache=1;;
         "n") show_name=1;;
         "l") show_log=1;;
@@ -135,142 +116,81 @@ done
 shift $((OPTIND - 1))
 
 # There are no positional arguments
-if [ ${#} -gt 0 ]; then
+if [ $# -gt 0 ]; then
     show_usage
     exit 1
 fi
 
-# Determine the target container
-TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
-
-# Make buildkit show plain progress
-if [ $show_log -ne 0 ]; then
-    export BUILDKIT_PROGRESS="plain"
-fi
-
-# Get the MD5 sums of the container build contexts
-declare -A container_md5sum=()
-for container in "${CONTAINERS[@]}"; do
-    if [ ${container_requested[$container]} -eq 0 ]; then
-        container_md5sum[$container]=""
-        continue
-    fi
-    container_md5sum[$container]=$(md5sum_dir_contents "${CONTAINER_DIRS[$container]}")
-done
-
-# Get the container tags
-declare -A container_tag=()
-previous_tag=""
-for container in "${CONTAINERS[@]}"; do
-    if [ ${container_requested[$container]} -eq 0 ]; then
-        container_tag[$container]=""
-        continue
-    fi
-    next_part=""
-    [ -n "$previous_tag" ] && next_part="-"
-    next_part="$next_part${CONTAINER_ALPHAS[$container]}"
-    [ $container != "USER" ] && next_part="$next_part${container_md5sum[$container]:0:4}"
-    container_tag[$container]="$previous_tag$next_part"
-    previous_tag=${container_tag[$container]}
-done
-
-# Get the container names
-declare -A container_name=()
-for container in "${CONTAINERS[@]}"; do
-    if [ ${container_requested[$container]} -eq 0 ]; then
-        container_name[$container]=""
-        continue
-    fi
-    container_name[$container]="$CONTAINER_REPO:${container_tag[$container]}"
-    container_name["LATEST"]=${container_name[$container]}
-done
-
-# Show the name if requested
-if [ $show_name -ne 0 ]; then
-    echo ${container_name["LATEST"]}
-    exit 0
-fi
+# Determine the target image
+TARGET_IMAGE="$IMAGE_REPO:$target_tag"
 
 # Check for Docker
-if ! command -v docker &> /dev/null; then
+if ! command -v docker &> /dev/null && [ $show_name -eq 0 ]; then
     echo "ERROR: Docker is required!" >&2
     exit 1
 fi
 
-# Check for each container
-declare -A container_exists=()
-for container in "${CONTAINERS[@]}"; do
-    if [ ${container_requested[$container]} -eq 0 ]; then
-        container_exists[$container]=0
-        continue
-    fi
-    container_exists[$container]=0
-    if [ -n "$(docker image ls -q ${container_name[$container]})" ]; then
-        container_exists[$container]=1
-    fi
-done
+# Check for HN2B
+if ! command -v $HN2B &> /dev/null; then
+    echo "ERROR: HN2B is required!" >&2
+    exit 1
+fi
 
 # Add extra build arguments
-extra_buildargs=()
+extra_args=()
 if [ $no_cache -ne 0 ]; then
-    extra_buildargs=("--no-cache")
+    extra_args+=("--no-cache")
+fi
+if [ $show_name -ne 0 ]; then
+    extra_args+=("--name")
+fi
+if [ $show_log -ne 0 ]; then
+    extra_args+=("--log")
 fi
 
 # Get the user data ready
-user_buildargs=()
-if [ ${container_exists["USER"]} -eq 0 ]; then
+pre_user_args=()
+if [ ${layer_requested['USER']} -ne 0 ]; then
     passwd_ent=$(getent passwd $(id -u))
-    user_name=$(echo ${passwd_ent} | cut -d : -f 1)
-    user_uid=$(echo ${passwd_ent} | cut -d : -f 3)
-    user_gid=$(echo ${passwd_ent} | cut -d : -f 4)
-    user_fullname=$(echo ${passwd_ent} | cut -d : -f 5 | cut -d , -f 1)
-    user_buildargs+=("--build-arg" "CUSTOM_DEV_USER=$user_name")
-    user_buildargs+=("--build-arg" "CUSTOM_DEV_USER_UID=$user_uid")
-    user_buildargs+=("--build-arg" "CUSTOM_DEV_USER_GID=$user_gid")
-    user_buildargs+=("--build-arg" "CUSTOM_DEV_USER_FULLNAME=$user_fullname")
+    user_name=$(echo $passwd_ent | cut -d : -f 1)
+    user_uid=$(echo $passwd_ent | cut -d : -f 3)
+    user_gid=$(echo $passwd_ent | cut -d : -f 4)
+    user_fullname=$(echo $passwd_ent | cut -d : -f 5 | cut -d , -f 1)
+    pre_user_args=(
+        --arg "CUSTOM_DEV_USER=$user_name"
+        --arg "CUSTOM_DEV_USER_UID=$user_uid"
+        --arg "CUSTOM_DEV_USER_GID=$user_gid"
+        --arg "CUSTOM_DEV_USER_FULLNAME=$user_fullname"
+    )
 fi
 
-# Build each container
-previous_container=""
-for container in "${CONTAINERS[@]}"; do
-    # Skip containers that we don't want in the build
-    if [ ${container_requested[$container]} -eq 0 ]; then
+# Loop through using the previous image as the base image
+generated_image=""
+for image in "${IMAGES[@]}"; do
+    if [ ${layer_requested[$image]} -eq 0 ]; then
         continue
     fi
-    # Build the container if we need to
-    if [ ${container_exists[$container]} -eq 0 ]; then
-        echo "Building: ${container_name[$container]}"
-        # Set the base container, except for the base container
-        base_buildargs=()
-        if [ $container != "BASE" ]; then
-            base_buildargs=(
-                "--build-arg" "BASE_CONTAINER=${container_name[$previous_container]}"
-            )
-        fi
-        # Set the md5sum, except for the user container
-        md5sum_buildargs=()
-        if [ $container != "USER" ]; then
-            md5sum_buildargs=(
-                "--build-arg" "${container}_CONTAINER_MD5SUM=${container_md5sum[$container]}"
-            )
-        fi
-        # Set the user variables, only for the user container
-        maybe_user_buildargs=()
-        if [ $container = "USER" ]; then
-            maybe_user_buildargs=("${user_buildargs[@]}")
-        fi
-        # Build the container!
-        (cd "${CONTAINER_DIRS[$container]}" \
-            && docker build "${extra_buildargs[@]}" \
-                "${base_buildargs[@]}" "${md5sum_buildargs[@]}" "${maybe_user_buildargs[@]}" \
-                -t ${container_name[$container]} -f Containerfile .)
-    else
-        echo "Has: ${container_name[$container]}"
+    base_image_args=()
+    if [ -n "$generated_image" ]; then
+        base_image_args=(--base "$generated_image")
     fi
-    previous_container=$container
+    user_args=()
+    if [ $image = 'USER' ]; then
+        user_args=("${pre_user_args[@]}")
+    fi
+    hn2b_output=$($HN2B --script \
+        "${extra_args[@]}" "${base_image_args[@]}" "${user_args[@]}" \
+        --file Containerfile $IMAGE_REPO "${IMAGE_DIRS[$image]}")
+    generated_image=$(echo "$hn2b_output" | grep -Po "(?<=GENERATED_IMAGE=).*")
 done
 
-# Tag the final container with the target tag
-docker tag ${container_name["LATEST"]} $TARGET_CONTAINER
+if [ $show_name -ne 0 ]; then
+    echo $generated_image
+    exit 0
+fi
+
+# Tag the final image with the target tag
+docker tag $generated_image $TARGET_IMAGE >&2
+echo "Tagged: $TARGET_IMAGE"
 
 exit 0
