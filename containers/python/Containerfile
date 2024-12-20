@@ -47,7 +47,9 @@ RUN pipx install --global \
         flake8 \
         isort \
         mypy \
-        ruff
+        ruff \
+        tox \
+        uv
 
 # Enable Poetry autocompletion
 RUN poetry completions bash > $DEV_USER_HOME/.bashrc_poetry \
