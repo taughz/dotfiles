@@ -1,0 +1,70 @@
+# emacs/doom_cache/Containerfile
+
+# Copyright (c) 2025 Tim Perkins
+
+FROM ubuntu:22.04
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Install necessary prerequisites
+RUN apt-get update \
+    && apt-get install -y \
+        curl \
+        git \
+        gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Emacs variables
+ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
+ARG EMACS_DEB_DIST="jammy"
+ARG EMACS_DEB_COMP="main"
+ARG EMACS_KEY_FINGERPRINT="0x873503a090750cdaeb0754d93ff0e01eeaafc9cd"
+ARG EMACS_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$EMACS_KEY_FINGERPRINT"
+ARG EMACS_KEY_FILE="/usr/share/keyrings/emacs-keyring.gpg"
+
+# Add Emacs repo
+RUN curl -fL "$EMACS_KEY_URL" | gpg --dearmor > $EMACS_KEY_FILE \
+    && { \
+        echo "# Emacs Repo (kelleyk)"; \
+        echo "deb [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+        echo "deb-src [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/emacs.list
+
+# Install Emacs 28
+RUN apt-get update \
+    && apt-get install -y \
+        emacs28 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Doom Emacs variables
+ARG DE_REPO="https://github.com/hlissner/doom-emacs"
+ARG DE_BRANCH="master"
+ARG DE_HASH="ba1dca322f9a07bc2b7bec6a98f2c3c55c0bbd77"
+ARG DE_EMACS_DIR="/vols/emacs.d"
+ARG DE_DOOM_DIR="/vols/doom.d"
+
+# Clone Doom to the Emacs config directory
+RUN git clone --branch $DE_BRANCH --single-branch $DE_REPO $DE_EMACS_DIR \
+    && cd $DE_EMACS_DIR \
+    && git reset --hard $DE_HASH
+
+# Add Doom executables to PATH
+ENV PATH=$DE_EMACS_DIR/bin:$PATH
+
+# Set environment variables used by Doom
+ENV EMACSDIR=$DE_EMACS_DIR
+ENV DOOMDIR=$DE_DOOM_DIR
+
+# Initialize Doom config, enable VTerm, then do Doom install
+RUN mkdir -p $DE_DOOM_DIR \
+    && cp $DE_EMACS_DIR/static/init.example.el $DE_DOOM_DIR/init.el \
+    && cp $DE_EMACS_DIR/static/config.example.el $DE_DOOM_DIR/config.el \
+    && cp $DE_EMACS_DIR/static/packages.example.el $DE_DOOM_DIR/packages.el \
+    && sed -e "s/[(]\?evil/;;\0/" -e "s/;;\([(]\?vterm\)/\1/" -i $DE_DOOM_DIR/init.el \
+    && doom install --force --no-config --no-env --no-fonts

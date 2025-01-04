@@ -14,6 +14,8 @@ HN2B="hn2b.sh"
 IMAGE_REPO="taughz-dev"
 DEFAULT_TARGET_TAG="latest"
 
+DOOM_CACHE_REPO="taughz-dev-doom-cache"
+
 IMAGES=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
 declare -A IMAGE_DIRS=(
@@ -23,6 +25,7 @@ declare -A IMAGE_DIRS=(
     ["ROS"]="$SCRIPT_DIR/ros"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
     ["EMACS"]="$SCRIPT_DIR/emacs"
+    ["DOOM_CACHE"]="$SCRIPT_DIR/emacs/doom_cache"
     ["XPRA"]="$SCRIPT_DIR/xpra"
     ["USER"]="$SCRIPT_DIR/user"
 )
@@ -148,9 +151,18 @@ if [ $show_log -ne 0 ]; then
     extra_args+=("--log")
 fi
 
+# Get Doom cache image ready
+pre_emacs_args=()
+if [ ${layer_requested["EMACS"]} -ne 0 ]; then
+    hn2b_output=$($HN2B --script \
+        "${extra_args[@]}" --file Containerfile $DOOM_CACHE_REPO "${IMAGE_DIRS['DOOM_CACHE']}")
+    doom_cache_image=$(echo "$hn2b_output" | grep -Po "(?<=GENERATED_IMAGE=).*")
+    pre_emacs_args=(--arg "DOOM_CACHE_IMAGE=$doom_cache_image")
+fi
+
 # Get the user data ready
 pre_user_args=()
-if [ ${layer_requested['USER']} -ne 0 ]; then
+if [ ${layer_requested["USER"]} -ne 0 ]; then
     passwd_ent=$(getent passwd $(id -u))
     user_name=$(echo $passwd_ent | cut -d : -f 1)
     user_uid=$(echo $passwd_ent | cut -d : -f 3)
@@ -174,12 +186,16 @@ for image in "${IMAGES[@]}"; do
     if [ -n "$generated_image" ]; then
         base_image_args=(--base "$generated_image")
     fi
+    emacs_args=()
+    if [ $image = "EMACS" ]; then
+        emacs_args=("${pre_emacs_args[@]}")
+    fi
     user_args=()
-    if [ $image = 'USER' ]; then
+    if [ $image = "USER" ]; then
         user_args=("${pre_user_args[@]}")
     fi
     hn2b_output=$($HN2B --script \
-        "${extra_args[@]}" "${base_image_args[@]}" "${user_args[@]}" \
+        "${extra_args[@]}" "${base_image_args[@]}" "${emacs_args[@]}" "${user_args[@]}" \
         --file Containerfile $IMAGE_REPO "${IMAGE_DIRS[$image]}")
     generated_image=$(echo "$hn2b_output" | grep -Po "(?<=GENERATED_IMAGE=).*")
 done
