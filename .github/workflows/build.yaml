@@ -1,0 +1,130 @@
+# .github/workflows/build.yaml
+
+# Copyright (c) 2025 Tim Perkins
+
+name: Build Image
+
+on:
+  push:
+    branches:
+      # - main
+      - "**"
+    tags:
+      - "**"
+  pull_request:
+    branches:
+      - main
+
+env:
+  TARGET_IMAGE: ghcr.io/taughz/dev
+  DOOM_CACHE_IMAGE: ghcr.io/taughz/dev-doom-cache
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build_image:
+    name: Build Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Determine Target Tag
+        id: target_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            tag=$(printf "pr-%d" "${{ github.event.pull_request.number }}")
+          else
+            tag=$(sed -e 's/[^A-Za-z0-9]\+/-/g' -e 's/^-\+//' <<< "${{ github.ref_name }}")
+          fi
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+      - name: Build Doom Cache Image
+        id: doom_cache
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.DOOM_CACHE_IMAGE }}
+          context: containers/emacs/doom_cache
+          dockerfile: Containerfile
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build Base Layer
+        id: base
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/base
+          dockerfile: Containerfile
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build C++ Layer
+        id: cpp
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/cpp
+          dockerfile: Containerfile
+          base-image: ${{ steps.base.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build Python Layer
+        id: python
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/python
+          dockerfile: Containerfile
+          base-image: ${{ steps.cpp.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build ROS Layer
+        id: ros
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/ros
+          dockerfile: Containerfile
+          base-image: ${{ steps.python.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build EMSDK Layer
+        id: emsdk
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/emsdk
+          dockerfile: Containerfile
+          base-image: ${{ steps.ros.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build Emacs Layer
+        id: emacs
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
+          context: containers/emacs
+          dockerfile: Containerfile
+          base-image: ${{ steps.emsdk.outputs.image }}
+          build-args: |
+            DOOM_CACHE_IMAGE=${{ steps.doom_cache.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build Xpra Layer
+        id: xpra
+        uses: taughz/hn2b@main
+        with:
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
+          context: containers/xpra
+          dockerfile: Containerfile
+          base-image: ${{ steps.emacs.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
