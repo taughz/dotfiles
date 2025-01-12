@@ -11,10 +11,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 HN2B="hn2b.sh"
 
-IMAGE_REPO="taughz-dev"
-DEFAULT_TARGET_TAG="latest"
+IMAGE_REPO="ghcr.io/taughz/dev"
+DEFAULT_TARGET_TAG="built"
 
-DOOM_CACHE_REPO="taughz-dev-doom-cache"
+DOOM_CACHE_REPO="ghcr.io/taughz/dev-doom-cache"
 
 IMAGES=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 

@@ -7,9 +7,9 @@ set -o nounset
 set -o pipefail
 IFS=$'\n\t'
 
-# The container to launch
-CONTAINER_REPO="taughz-dev"
-DEFAULT_TARGET_TAG="latest"
+# The image to launch
+IMAGE_REPO="ghcr.io/taughz/dev"
+DEFAULT_TARGET_TAG="main"
 
 # The names of the volumes
 SHELL_CONFIG_VOL="shell-config"
@@ -108,8 +108,8 @@ if [ $# -gt 0 ]; then
     exit 1
 fi
 
-# Determine the target container
-TARGET_CONTAINER="$CONTAINER_REPO:$target_tag"
+# Determine the target image
+TARGET_IMAGE="$IMAGE_REPO:$target_tag"
 
 # Check projects directory
 if [ $mount_projects -ne 0 -a ! -d "$projects_dir" ]; then
@@ -124,13 +124,13 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # The variables from inside the container
-CONTAINER_ENV=$(docker run --rm $TARGET_CONTAINER printenv)
-DEV_USER=$(get_from_env "$CONTAINER_ENV" "DEV_USER")
-DEV_USER_UID=$(get_from_env "$CONTAINER_ENV" "DEV_USER_UID")
-DEV_USER_HOME=$(get_from_env "$CONTAINER_ENV" "DEV_USER_HOME")
-SHELL_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "SHELL_CONFIG_DIR")
-EMACS_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "EMACS_CONFIG_DIR" || true)
-DOOM_CONFIG_DIR=$(get_from_env "$CONTAINER_ENV" "DOOM_CONFIG_DIR" || true)
+IMAGE_ENV=$(docker run --rm $TARGET_IMAGE printenv)
+DEV_USER=$(get_from_env "$IMAGE_ENV" "DEV_USER")
+DEV_USER_UID=$(get_from_env "$IMAGE_ENV" "DEV_USER_UID")
+DEV_USER_HOME=$(get_from_env "$IMAGE_ENV" "DEV_USER_HOME")
+SHELL_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "SHELL_CONFIG_DIR")
+EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
+DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 
 # Check for volumes, create them if necessary
 vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
@@ -218,6 +218,6 @@ fi
 docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" "${emacs_flags[@]}" \
-    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_CONTAINER"
+    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
 
 exit 0
