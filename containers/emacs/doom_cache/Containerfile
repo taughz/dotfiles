@@ -45,7 +45,7 @@ RUN apt-get update \
 # Doom Emacs variables
 ARG DE_REPO="https://github.com/hlissner/doom-emacs"
 ARG DE_BRANCH="master"
-ARG DE_HASH="ba1dca322f9a07bc2b7bec6a98f2c3c55c0bbd77"
+ARG DE_HASH="1d7a94b96b4410a3747ec579c728a79413379e64"
 ARG DE_EMACS_DIR="/vols/emacs.d"
 ARG DE_DOOM_DIR="/vols/doom.d"
 
@@ -67,4 +67,4 @@ RUN mkdir -p $DE_DOOM_DIR \
     && cp $DE_EMACS_DIR/static/config.example.el $DE_DOOM_DIR/config.el \
     && cp $DE_EMACS_DIR/static/packages.example.el $DE_DOOM_DIR/packages.el \
     && sed -e "s/[(]\?evil/;;\0/" -e "s/;;\([(]\?vterm\)/\1/" -i $DE_DOOM_DIR/init.el \
-    && doom install --force --no-config --no-env --no-fonts
+    && doom install --force --verbose --no-config --no-env --no-hooks
