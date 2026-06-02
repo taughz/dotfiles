@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Determine Target Tag
         id: target_tag
         shell: bash
@@ -41,7 +41,7 @@ jobs:
           echo "tag=$tag" >> $GITHUB_OUTPUT
       - name: Build Doom Cache Image
         id: doom_cache
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.DOOM_CACHE_IMAGE }}
           context: containers/emacs/doom_cache
@@ -51,7 +51,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build Base Layer
         id: base
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/base
@@ -61,7 +61,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build C++ Layer
         id: cpp
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/cpp
@@ -72,7 +72,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build Python Layer
         id: python
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/python
@@ -83,7 +83,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build ROS Layer
         id: ros
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/ros
@@ -94,7 +94,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build EMSDK Layer
         id: emsdk
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/emsdk
@@ -105,7 +105,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build Emacs Layer
         id: emacs
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs
@@ -118,7 +118,7 @@ jobs:
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build Xpra Layer
         id: xpra
-        uses: taughz/hn2b@main
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
           context: containers/xpra
