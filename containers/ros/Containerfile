@@ -25,10 +25,10 @@ ARG ROS_KEY_FILE="/usr/share/keyrings/ros-archive-keyring.gpg"
 ARG COLCON_MIXIN_URL="https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml"
 ARG COLCON_METADATA_URL="https://raw.githubusercontent.com/colcon/colcon-metadata-repository/master/index.yaml"
 
-# Add ROS repo
+# Add ROS 2 repo
 RUN curl -fL -o $ROS_KEY_FILE "$ROS_KEY_URL" \
     && { \
-        echo "# ROS Repo"; \
+        echo "# ROS 2 Repo"; \
         echo "deb [arch=$ROS_DEB_ARCH signed-by=$ROS_KEY_FILE] $ROS_DEB_URL $ROS_DEB_DIST $ROS_DEB_COMP"; \
     } >> /etc/apt/sources.list.d/ros2.list
 
