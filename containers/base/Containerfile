@@ -11,6 +11,7 @@ WORKDIR /
 # Make sure we don't get prompted
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
+ARG NEW="2"                     # Bump to force rebuild
 
 # Prevent DBus warning message
 ENV NO_AT_BRIDGE=1
