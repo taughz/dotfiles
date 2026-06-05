@@ -14,6 +14,7 @@ HN2B="hn2b.sh"
 IMAGE_REPO="ghcr.io/taughz/dev"
 DEFAULT_TARGET_TAG="built"
 
+EMACS_BUILDER_REPO="ghcr.io/taughz/dev-emacs-builder"
 DOOM_CACHE_REPO="ghcr.io/taughz/dev-doom-cache"
 
 IMAGES=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
@@ -25,6 +26,7 @@ declare -A IMAGE_DIRS=(
     ["ROS"]="$SCRIPT_DIR/ros"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
     ["EMACS"]="$SCRIPT_DIR/emacs"
+    ["EMACS_BUILDER"]="$SCRIPT_DIR/emacs/emacs_builder"
     ["DOOM_CACHE"]="$SCRIPT_DIR/emacs/doom_cache"
     ["XPRA"]="$SCRIPT_DIR/xpra"
     ["USER"]="$SCRIPT_DIR/user"
@@ -36,7 +38,7 @@ declare -A IMAGE_DIRS=(
 function show_usage() {
     cat <<EOF >&2
 Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
-            [-p | --python] [-r | --ros] [-w | --emsdk][-e | --emacs]
+            [-p | --python] [-r | --ros] [-w | --emsdk] [-e | --emacs]
             [-x | --xpra] [-u | --user] [-k | --no-cache] [-n | --name]
             [-l | --log] [-h | --help]
 
@@ -151,13 +153,19 @@ if [ $show_log -ne 0 ]; then
     extra_args+=("--log")
 fi
 
-# Get Doom cache image ready
+# Get the Emacs builder and Doom cache images ready
 pre_emacs_args=()
 if [ ${layer_requested["EMACS"]} -ne 0 ]; then
     hn2b_output=$($HN2B --script \
-        "${extra_args[@]}" --file Containerfile $DOOM_CACHE_REPO "${IMAGE_DIRS['DOOM_CACHE']}")
+        "${extra_args[@]}" --file Containerfile $EMACS_BUILDER_REPO \
+        "${IMAGE_DIRS['EMACS_BUILDER']}")
+    emacs_builder_image=$(echo "$hn2b_output" | grep -Po "(?<=GENERATED_IMAGE=).*")
+    pre_emacs_args+=(--arg "EMACS_BUILDER_IMAGE=$emacs_builder_image")
+    hn2b_output=$($HN2B --script \
+        "${extra_args[@]}" "${pre_emacs_args[@]}" --file Containerfile $DOOM_CACHE_REPO \
+        "${IMAGE_DIRS['DOOM_CACHE']}")
     doom_cache_image=$(echo "$hn2b_output" | grep -Po "(?<=GENERATED_IMAGE=).*")
-    pre_emacs_args=(--arg "DOOM_CACHE_IMAGE=$doom_cache_image")
+    pre_emacs_args+=(--arg "DOOM_CACHE_IMAGE=$doom_cache_image")
 fi
 
 # Get the user data ready

@@ -2,6 +2,8 @@
 
 # Copyright (c) 2025 Tim Perkins
 
+ARG EMACS_BUILDER_IMAGE="scratch"
+FROM $EMACS_BUILDER_IMAGE AS emacs-builder
 FROM ubuntu:22.04
 
 # Ensure root user
@@ -20,26 +22,14 @@ RUN apt-get update \
         gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Emacs variables
-ARG EMACS_DEB_URL="https://ppa.launchpadcontent.net/kelleyk/emacs/ubuntu"
-ARG EMACS_DEB_DIST="jammy"
-ARG EMACS_DEB_COMP="main"
-ARG EMACS_KEY_FINGERPRINT="0x873503a090750cdaeb0754d93ff0e01eeaafc9cd"
-ARG EMACS_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=$EMACS_KEY_FINGERPRINT"
-ARG EMACS_KEY_FILE="/usr/share/keyrings/emacs-keyring.gpg"
+# Install Emacs by copying it
+COPY --from=emacs-builder /usr/local /usr/local
 
-# Add Emacs repo
-RUN curl -fL "$EMACS_KEY_URL" | gpg --dearmor > $EMACS_KEY_FILE \
-    && { \
-        echo "# Emacs Repo (kelleyk)"; \
-        echo "deb [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
-        echo "deb-src [signed-by=$EMACS_KEY_FILE] $EMACS_DEB_URL $EMACS_DEB_DIST $EMACS_DEB_COMP"; \
-    } >> /etc/apt/sources.list.d/emacs.list
-
-# Install Emacs 28
+# Install all the runtime dependencies
 RUN apt-get update \
-    && apt-get install -y \
-        emacs28 \
+    && sed -e "s/[[:space:]]*#.*//" -e "/^[[:space:]]*$/d" \
+        /usr/local/share/emacs/emacs_runtime_deps.txt \
+        | xargs apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Doom Emacs variables

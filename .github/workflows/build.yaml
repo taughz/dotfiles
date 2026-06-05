@@ -16,6 +16,7 @@ on:
 
 env:
   TARGET_IMAGE: ghcr.io/taughz/dev
+  EMACS_BUILDER_IMAGE: ghcr.io/taughz/dev-emacs-builder
   DOOM_CACHE_IMAGE: ghcr.io/taughz/dev-doom-cache
 
 defaults:
@@ -39,6 +40,16 @@ jobs:
             tag=$(sed -e 's/[^A-Za-z0-9]\+/-/g' -e 's/^-\+//' <<< "${{ github.ref_name }}")
           fi
           echo "tag=$tag" >> $GITHUB_OUTPUT
+      - name: Build Emacs Builder Image
+        id: emacs_builder
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        with:
+          image: ${{ env.EMACS_BUILDER_IMAGE }}
+          context: containers/emacs/emacs_builder
+          dockerfile: Containerfile
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build Doom Cache Image
         id: doom_cache
         uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
@@ -46,6 +57,8 @@ jobs:
           image: ${{ env.DOOM_CACHE_IMAGE }}
           context: containers/emacs/doom_cache
           dockerfile: Containerfile
+          build-args: |
+            EMACS_BUILDER_IMAGE=${{ steps.emacs_builder.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
@@ -112,6 +125,7 @@ jobs:
           dockerfile: Containerfile
           base-image: ${{ steps.emsdk.outputs.image }}
           build-args: |
+            EMACS_BUILDER_IMAGE=${{ steps.emacs_builder.outputs.image }}
             DOOM_CACHE_IMAGE=${{ steps.doom_cache.outputs.image }}
           skip-pull: true
           push: true

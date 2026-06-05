@@ -1,0 +1,35 @@
+# These are runtime dependencies for our Emacs built from source. The exact
+# dependencies will depend on the version of Emacs and the build flags used.
+# This list was determined experimentally, by first installing Emacs with no
+# dependencies, then inspecting which libraries were missing with 'ldd'.
+
+libcairo2
+libdbus-1-3
+libfontconfig1
+libfreetype6
+libgccjit0
+libgdk-pixbuf-2.0-0
+libgif7
+libglib2.0-0
+libgtk-3-0
+libharfbuzz0b
+libice6
+libjansson4
+libjpeg8
+liblcms2-2
+libmagickwand-6.q16-6
+libpango-1.0-0
+libpng16-16
+librsvg2-2
+libsm6
+libtiff5
+libtree-sitter0
+libwebp7
+libwebpdemux2
+libxcomposite1
+libxfixes3
+libxi6
+libxinerama1
+libxml2
+libxrandr2
+libxrender1

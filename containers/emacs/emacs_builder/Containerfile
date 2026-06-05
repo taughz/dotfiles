@@ -1,0 +1,65 @@
+# emacs/emacs_builder/Containerfile
+
+# Copyright (c) 2026 Tim Perkins
+
+FROM ubuntu:22.04
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Install necessary prerequisites
+RUN apt-get update \
+    && apt-get install -y \
+        curl \
+        git \
+        gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Emacs build dependencies. Note the inclusion of libgccjit-11-dev,
+# which matches the default compiler GCC 11.
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        gnutls-dev \
+        libgccjit-11-dev \
+        libgif-dev \
+        libgtk-3-dev \
+        libjansson-dev \
+        libmagick++-dev \
+        libtinfo-dev \
+        libtree-sitter-dev \
+        libwebp-dev \
+        libxpm-dev \
+        texinfo \
+     && rm -rf /var/lib/apt/lists/*
+
+# Emacs variables
+ARG EMACS_TARBALL_URL="https://github.com/emacs-mirror/emacs/archive/refs/tags/emacs-29.4.tar.gz"
+ARG EMACS_TARBALL_FILE="emacs-29.4.tar.gz"
+ARG EMACS_TARBALL_MD5SUM="6b375a029676f2da09a92b1536db7ad1"
+
+# Build and install Emacs
+RUN EMACS_TMP=$(mktemp -d) \
+    && cd $EMACS_TMP \
+    && curl -fL -o $EMACS_TARBALL_FILE "$EMACS_TARBALL_URL" \
+    && (echo "$EMACS_TARBALL_MD5SUM  $EMACS_TARBALL_FILE" | md5sum --quiet -c -) \
+    && tar -xf $EMACS_TARBALL_FILE --strip-components=1 -C $EMACS_TMP \
+    && $EMACS_TMP/autogen.sh \
+    && $EMACS_TMP/configure \
+        --with-x \
+        --with-x-toolkit=gtk3 \
+        --with-imagemagick \
+        --with-json \
+        --with-tree-sitter \
+        --with-native-compilation=yes \
+    && make -C $EMACS_TMP -j$(nproc) \
+    && make -C $EMACS_TMP install \
+    && rm -rf $EMACS_TARBALL_FILE $EMACS_TMP
+
+# Copy the list of runtime package dependencies to install later
+COPY emacs_runtime_deps.txt /usr/local/share/emacs/emacs_runtime_deps.txt
