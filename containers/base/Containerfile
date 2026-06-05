@@ -42,6 +42,7 @@ RUN apt-get update \
         nano \
         openssh-client \
         p7zip \
+        patch \
         tar \
         tzdata \
         unzip \
