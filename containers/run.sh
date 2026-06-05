@@ -64,6 +64,14 @@ function ensure_exists() {
     chmod "$mode" "$path"
 }
 
+# Usage: echo_cmd COMMAND [ARGS...]
+#
+# Prints the command, then runs it.
+function echo_cmd() {
+    printf '%s\n' "Running command: $(IFS=' '; echo "$*")" >&2
+    "$@"
+}
+
 # Default options
 target_tag=$DEFAULT_TARGET_TAG
 mount_projects=0
@@ -215,7 +223,7 @@ if [ $use_tz -ne 0 ]; then
     tz_flags+=(--mount "type=bind,src=/etc/localtime,dst=/etc/localtime")
 fi
 
-docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
+echo_cmd docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" "${emacs_flags[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
