@@ -46,12 +46,15 @@ RUN curl -fL "$LLVM_KEY_URL" | gpg --dearmor > $LLVM_KEY_FILE \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         clang-16 \
-        lld-16 \
-        lldb-16 \
         clang-format-16 \
         clangd-16 \
-        llvm-16-dev \
+        libc++-16-dev \
+        libc++abi-16-dev \
         libclang-16-dev \
+        libstdc++-12-dev \
+        lld-16 \
+        lldb-16 \
+        llvm-16-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Make aliases for some Clang tools
