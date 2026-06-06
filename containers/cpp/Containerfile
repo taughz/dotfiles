@@ -67,6 +67,18 @@ RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 1000 \
     && update-alternatives --install /usr/bin/clang-format-diff clang-format-diff /usr/bin/clang-format-diff-16 1000 \
     && update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-16 1000
 
+# Install GCC 12, plus the JIT library, just in case we need it for Emacs
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        g++-12 \
+        gcc-12 \
+        libgccjit-12-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make aliases to default to GCC 12
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 1000 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 1000
+
 # Update common commands to use Clang by default. WARNING: DO NOT ATTEMPT TO USE
 # CLANG FOR BUILDING THINGS LIKE KERNEL MODULES! THAT WON'T WORK! DON'T ATTEMPT
 # TO UPDATE YOUR KERNEL AND USE DKMS! THAT WON'T WORK!
