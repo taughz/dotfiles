@@ -9,7 +9,7 @@ IFS=$'\n\t'
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
-HN2B="hn2b.sh"
+HN2B="${HN2B:-hn2b.sh}"
 
 IMAGE_REPO="ghcr.io/taughz/dev"
 DEFAULT_TARGET_TAG="built"
