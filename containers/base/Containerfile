@@ -178,6 +178,11 @@ COPY entrypoint.sh /entrypoint.sh
 COPY fix_user.sh $ENTRYPOINT_DIR/00_fix_user.sh
 COPY login_shim.sh $ENTRYPOINT_DIR/01_login_shim.sh
 
+# Add ~/.bashrc.d support to the user's ~/.bashrc
+COPY bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
+RUN cat /tmp/bashrcd_fragment.bash >> $DEV_USER_HOME/.bashrc \
+    && sudo -u $DEV_USER mkdir -m 755 $DEV_USER_HOME/.bashrc.d
+
 # Here we set the entry point to the main entry point script. This script in
 # turn execs a chain of other entry points. This allows other images to layer
 # their own entry points onto the original entry point.
