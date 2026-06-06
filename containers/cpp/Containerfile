@@ -75,6 +75,9 @@ RUN update-alternatives --install /usr/bin/cc cc /usr/bin/clang 1000 \
     && update-alternatives --install /usr/bin/cpp cpp /usr/bin/clang-cpp 1000 \
     && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld 1000
 
+# Copy Clangd config
+COPY clangd-config.yaml $DEV_USER_HOME/.config/clangd/config.yaml
+
 # Include What You Use Variables (v0.20 for use with LLVM 16)
 ARG IWYU_TAR_URL="https://include-what-you-use.org/downloads/include-what-you-use-0.20.src.tar.gz"
 
