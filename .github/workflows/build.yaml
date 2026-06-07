@@ -72,6 +72,17 @@ jobs:
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build Agent Layer
+        id: agent
+        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        with:
+          image: ${{ env.TARGET_IMAGE }}
+          context: containers/agent
+          dockerfile: Containerfile
+          base-image: ${{ steps.base.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
       - name: Build C++ Layer
         id: cpp
         uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
@@ -79,7 +90,7 @@ jobs:
           image: ${{ env.TARGET_IMAGE }}
           context: containers/cpp
           dockerfile: Containerfile
-          base-image: ${{ steps.base.outputs.image }}
+          base-image: ${{ steps.agent.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}

@@ -17,10 +17,11 @@ DEFAULT_TARGET_TAG="built"
 EMACS_BUILDER_REPO="ghcr.io/taughz/dev-emacs-builder"
 DOOM_CACHE_REPO="ghcr.io/taughz/dev-doom-cache"
 
-IMAGES=("BASE" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
+IMAGES=("BASE" "AGENT" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
 
 declare -A IMAGE_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
+    ["AGENT"]="$SCRIPT_DIR/agent"
     ["CPP"]="$SCRIPT_DIR/cpp"
     ["PYTHON"]="$SCRIPT_DIR/python"
     ["ROS"]="$SCRIPT_DIR/ros"
@@ -37,15 +38,16 @@ declare -A IMAGE_DIRS=(
 # Prints help message for this script.
 function show_usage() {
     cat <<EOF >&2
-Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-c | --cpp]
-            [-p | --python] [-r | --ros] [-w | --emsdk] [-e | --emacs]
-            [-x | --xpra] [-u | --user] [-k | --no-cache] [-n | --name]
-            [-l | --log] [-h | --help]
+Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-b | --agent]
+            [-c | --cpp] [-p | --python] [-r | --ros] [-w | --emsdk]
+            [-e | --emacs] [-x | --xpra] [-u | --user] [-k | --no-cache]
+            [-n | --name] [-l | --log] [-h | --help]
 
 Make the Taughz development image.
 
     -t | --tag TAG      Tag the image with the given tag
     -a | --all          Build all layers
+    -b | --agent        Build the agent layer
     -c | --cpp          Build the C++ layer
     -p | --python       Build the Python layer
     -r | --ros          Build the ROS layer
@@ -64,6 +66,7 @@ EOF
 target_tag=$DEFAULT_TARGET_TAG
 declare -A layer_requested=(
     ["BASE"]=1
+    ["AGENT"]=0
     ["CPP"]=0
     ["PYTHON"]=0
     ["ROS"]=0
@@ -81,6 +84,7 @@ for arg in "$@"; do
     case "$arg" in
         "--tag") set -- "$@" "-t";;
         "--all") set -- "$@" "-a";;
+        "--agent") set -- "$@" "-b";;
         "--cpp") set -- "$@" "-c";;
         "--python") set -- "$@" "-p";;
         "--ros") set -- "$@" "-r";;
@@ -98,10 +102,11 @@ for arg in "$@"; do
 done
 
 # Parse short options using getopts
-while getopts "t:acprwexuknlh" arg &> /dev/null; do
+while getopts "t:abcprwexuknlh" arg &> /dev/null; do
     case "$arg" in
         "t") target_tag=$OPTARG;;
         "a") for co in "${IMAGES[@]}"; do layer_requested[$co]=1; done;;
+        "b") layer_requested["AGENT"]=1;;
         "c") layer_requested["CPP"]=1;;
         "p") layer_requested["PYTHON"]=1;;
         "r") layer_requested["ROS"]=1;;

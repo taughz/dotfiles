@@ -155,6 +155,8 @@ ensure_exists d 700 $HOME/.ssh
 ensure_exists d 700 $HOME/.gnupg
 ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.xpra
+ensure_exists f 600 $HOME/.claude.json
+ensure_exists d 700 $HOME/.claude
 
 # Get the user data ready
 passwd_ent=$(getent passwd $(id -u))
@@ -201,6 +203,11 @@ XPRA_FLAGS=(
     --mount "type=bind,src=$HOME/.xpra,dst=$CHOME/.xpra"
 )
 
+CLAUDE_FLAGS=(
+    --mount "type=bind,src=$HOME/.claude.json,dst=$CHOME/.claude.json"
+    --mount "type=bind,src=$HOME/.claude,dst=$CHOME/.claude"
+)
+
 SHELL_FLAGS=(
     --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR"
 )
@@ -225,7 +232,7 @@ fi
 
 echo_cmd docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
     "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" "${emacs_flags[@]}" \
-    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
+    "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" \
+    "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
 
 exit 0

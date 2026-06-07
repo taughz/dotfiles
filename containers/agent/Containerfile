@@ -1,0 +1,34 @@
+# cpp/Containerfile
+
+# Copyright (c) 2026 Tim Perkins
+
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# You can use the following URL to determine the current stable version:
+# https://downloads.claude.ai/claude-code-releases/stable
+
+ARG CLAUDE_VERSION="2.1.153"
+ARG CLAUDE_PLATFORM="linux-x64"
+ARG CLAUDE_URL="https://downloads.claude.ai/claude-code-releases/$CLAUDE_VERSION/$CLAUDE_PLATFORM/claude"
+ARG CLAUDE_FILE="/usr/local/bin/claude"
+ARG CLAUDE_SHA256SUM="214f603f31942162dac9a65f18d43b3ac646ae215240fad481c4aad6c60f2e38"
+
+# You can find the official checksum here:
+# https://downloads.claude.ai/claude-code-releases/$CLAUDE_VERSION/manifest.json
+
+RUN curl -fL -o $CLAUDE_FILE "$CLAUDE_URL" \
+    && (echo "$CLAUDE_SHA256SUM  $CLAUDE_FILE" | sha256sum --quiet -c -) \
+    && chmod +x $CLAUDE_FILE
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
