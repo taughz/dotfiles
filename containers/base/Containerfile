@@ -4,6 +4,9 @@
 
 FROM ubuntu:22.04
 
+# Set shell to Bash with better error flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 # Ensure root user
 USER root
 WORKDIR /

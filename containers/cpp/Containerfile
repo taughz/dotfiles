@@ -5,6 +5,9 @@
 ARG BASE_IMAGE="scratch"
 FROM $BASE_IMAGE
 
+# Set shell to Bash with better error flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 # Ensure root user
 USER root
 WORKDIR /
@@ -103,7 +106,7 @@ RUN IWYU_TMP=$(mktemp -d) \
     && cmake --build build \
     && cmake --build build --target install \
     && cp -t /usr/local/bin iwyu_tool.py fix_includes.py \
-    && cd $WORKDIR \
+    && cd .. \
     && rm -rf $IWYU_TMP
 
 # Fix the IWYU resource directory, which is a required part of installation.

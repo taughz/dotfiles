@@ -9,6 +9,9 @@ FROM $EMACS_BUILDER_IMAGE AS emacs-builder
 FROM $DOOM_CACHE_IMAGE AS doom-cache
 FROM $BASE_IMAGE
 
+# Set shell to Bash with better error flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 # Ensure root user
 USER root
 WORKDIR /
