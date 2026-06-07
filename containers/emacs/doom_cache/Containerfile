@@ -56,5 +56,5 @@ RUN mkdir -p $DE_DOOM_DIR \
     && cp $DE_EMACS_DIR/static/init.example.el $DE_DOOM_DIR/init.el \
     && cp $DE_EMACS_DIR/static/config.example.el $DE_DOOM_DIR/config.el \
     && cp $DE_EMACS_DIR/static/packages.example.el $DE_DOOM_DIR/packages.el \
-    && sed -e "s/[(]\?evil/;;\0/" -e "s/;;\([(]\?vterm\)/\1/" -i $DE_DOOM_DIR/init.el \
+    && sed -e "s/[(]\?evil/;;&/" -e "s/;;\([(]\?vterm\)/\1/" -i $DE_DOOM_DIR/init.el \
     && doom install --force --verbose --no-config --no-env --no-hooks

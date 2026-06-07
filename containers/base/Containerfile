@@ -160,7 +160,7 @@ RUN BASH_CONFIG_DIR=$SHELL_CONFIG_DIR/bash \
 
 # Modify PS1 to put a * after the hostname. This is sort of useful because it
 # let's you quickly see if you are inside the container or not.
-RUN sed -i 's;PS1.*\\h;\0*;' /root/.bashrc $DEV_USER_HOME/.bashrc
+RUN sed -i 's;PS1.*\\h;&*;' /root/.bashrc $DEV_USER_HOME/.bashrc
 
 # Enable GPG agent by adding GPG_TTY
 RUN { \
