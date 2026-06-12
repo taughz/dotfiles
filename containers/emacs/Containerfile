@@ -63,11 +63,8 @@ RUN curl -fL -o $FD_FILE "$FD_URL" \
     && dpkg -i $FD_FILE \
     && rm -f $FD_FILE
 
-# Switch to non-root user
-USER $DEV_USER
-WORKDIR $DEV_USER_HOME
 
-# Doom Emacs variables
+# Doom Emacs variables from the cache image
 ARG DE_EMACS_DIR="/vols/emacs.d"
 ARG DE_DOOM_DIR="/vols/doom.d"
 
@@ -75,20 +72,37 @@ ARG DE_DOOM_DIR="/vols/doom.d"
 # organization. Copying those symlinks will break them, unless the absolute
 # paths stay the same. That is to say, $DE_EMACS_DIR must equal
 # $EMACS_CONFIG_DIR, etc.
-ENV EMACS_CONFIG_DIR="$DE_EMACS_DIR"
-ENV DOOM_CONFIG_DIR="$DE_DOOM_DIR"
+ENV EMACS_CONFIG_DIR=$DE_EMACS_DIR
+ENV DOOM_CONFIG_DIR=$DE_DOOM_DIR
 
 # Make blank directories to ensure permissions are set correctly
-RUN sudo mkdir -m 755 $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR \
-    && sudo chown $DEV_USER:$DEV_USER $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
+RUN mkdir -m 755 $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR \
+    && chown $DEV_USER:$DEV_USER $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
+
+# Add Doom executables to PATH
+ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
+
+# Set environment variables used by Doom
+ENV EMACSDIR=$EMACS_CONFIG_DIR
+ENV DOOMDIR=$DOOM_CONFIG_DIR
+
+# Tarballs which will be made to initialize Emacs volumes
+ENV EMACS_CONFIG_TARBALL="$VOLS_INIT_DIR/emacs.d.tar.gz"
+ENV DOOM_CONFIG_TARBALL="$VOLS_INIT_DIR/doom.d.tar.gz"
+
+# Create tarballs for the Emacs Doom config files
+RUN --mount=type=bind,from=doom-cache,src=$DE_EMACS_DIR,dst=$EMACS_CONFIG_DIR \
+    tar -C $EMACS_CONFIG_DIR --create -z -f $EMACS_CONFIG_TARBALL .
+RUN --mount=type=bind,from=doom-cache,src=$DE_DOOM_DIR,dst=$DOOM_CONFIG_DIR \
+    tar -C $DOOM_CONFIG_DIR --create -z -f $DOOM_CONFIG_TARBALL .
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME
 
 # Add links to the home directory
 RUN ln -s $EMACS_CONFIG_DIR $DEV_USER_HOME/.emacs.d \
     && ln -s $DOOM_CONFIG_DIR $DEV_USER_HOME/.doom.d
-
-# Copy files from the build layer
-COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_EMACS_DIR $EMACS_CONFIG_DIR
-COPY --from=doom-cache --chown=$DEV_USER:$DEV_USER $DE_DOOM_DIR $DOOM_CONFIG_DIR
 
 # Doom font variables
 ARG DE_NERDFONT_URL="https://raw.githubusercontent.com/rainstormstudio/nerd-icons.el/main/fonts/NFM.ttf"
@@ -98,20 +112,6 @@ ARG DE_NERDFONT_FILE="$DEV_USER_HOME/.local/share/fonts/NFM.ttf"
 RUN mkdir -p $(dirname $DE_NERDFONT_FILE) \
     && curl -fL -o $DE_NERDFONT_FILE "$DE_NERDFONT_URL" \
     && fc-cache -f
-
-# Add Doom executables to PATH
-ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
-
-# Set environment variables used by Doom
-ENV EMACSDIR=$DE_EMACS_DIR
-ENV DOOMDIR=$DE_DOOM_DIR
-
-# Build the VTerm module. We must locate the exact build directory because it's
-# name depends on the Emacs version, e.g., `build-28.1`, etc.
-RUN VTERM_BUILD_DIR=$(fd -uu -p "build-[0-9.]+/vterm$" $EMACS_CONFIG_DIR) \
-    && cd $VTERM_BUILD_DIR \
-    && cmake -S . -B build \
-    && cmake --build build
 
 # Add VTerm integration to Bash config
 RUN { \
@@ -124,11 +124,14 @@ RUN { \
         echo "fi"; \
     } >> $DEV_USER_HOME/.bashrc
 
+# Copy entry point for config initialization
+COPY emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
+
 # Persistent storage for the Emacs and Doom config directories. These
 # directories will be initialized with the Doom files from above.
 VOLUME ["$EMACS_CONFIG_DIR", "$DOOM_CONFIG_DIR"]
 
-# Copy the Emacs shim for the entry point
+# Copy the Emacs shim for the default command
 COPY emacs_shim.sh /emacs_shim.sh
 
 # Launch Emacs by default

@@ -13,8 +13,6 @@ DEFAULT_TARGET_TAG="main"
 
 # The names of the volumes
 SHELL_CONFIG_VOL="shell-config"
-EMACS_CONFIG_VOL="emacs-config"
-DOOM_CONFIG_VOL="doom-config"
 
 # The default projects directory
 DEFAULT_PROJECTS_DIR="$HOME/Projects"
@@ -141,7 +139,7 @@ EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
 DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 
 # Check for volumes, create them if necessary
-vols=($SHELL_CONFIG_VOL $EMACS_CONFIG_VOL $DOOM_CONFIG_VOL)
+vols=($SHELL_CONFIG_VOL)
 for vol in "${vols[@]}"; do
     if ! docker volume ls -q | grep -q $vol; then
         echo "Creating volume: $vol" >&2
@@ -157,6 +155,9 @@ ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.xpra
 ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.claude
+ensure_exists d 700 $HOME/.taughz
+ensure_exists d 700 $HOME/.taughz/emacs.d
+ensure_exists d 700 $HOME/.taughz/doom.d
 
 # Get the user data ready
 passwd_ent=$(getent passwd $(id -u))
@@ -214,8 +215,8 @@ SHELL_FLAGS=(
 
 emacs_flags=()
 if [ -n "$EMACS_CONFIG_DIR" -a -n "$DOOM_CONFIG_DIR" ]; then
-    emacs_flags+=(--mount "type=volume,src=$EMACS_CONFIG_VOL,dst=$EMACS_CONFIG_DIR")
-    emacs_flags+=(--mount "type=volume,src=$DOOM_CONFIG_VOL,dst=$DOOM_CONFIG_DIR")
+    emacs_flags+=(--mount "type=bind,src=$HOME/.taughz/emacs.d,dst=$EMACS_CONFIG_DIR")
+    emacs_flags+=(--mount "type=bind,src=$HOME/.taughz/doom.d,dst=$DOOM_CONFIG_DIR")
 fi
 
 projects_flags=()

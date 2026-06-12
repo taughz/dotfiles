@@ -61,3 +61,18 @@ RUN mkdir -p $DE_DOOM_DIR \
     && cp $DE_EMACS_DIR/static/packages.example.el $DE_DOOM_DIR/packages.el \
     && sed -e "s/[(]\?evil/;;&/" -e "s/;;\([(]\?vterm\)/\1/" -i $DE_DOOM_DIR/init.el \
     && doom install --force --verbose --no-config --no-env --no-hooks
+
+# Install dependencies for building VTerm
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential \
+        cmake \
+        libtool-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build the VTerm module. We must locate the exact build directory because it's
+# name depends on the Emacs version, e.g., `build-28.1`, etc.
+RUN VTERM_BUILD_DIR=$(find "$DE_EMACS_DIR" -path "*/build-[0-9.]*/vterm") \
+    && cd $VTERM_BUILD_DIR \
+    && cmake -S . -B build \
+    && cmake --build build
