@@ -11,9 +11,6 @@ IFS=$'\n\t'
 IMAGE_REPO="ghcr.io/taughz/dev"
 DEFAULT_TARGET_TAG="main"
 
-# The names of the volumes
-SHELL_CONFIG_VOL="shell-config"
-
 # The default projects directory
 DEFAULT_PROJECTS_DIR="$HOME/Projects"
 
@@ -138,15 +135,6 @@ SHELL_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "SHELL_CONFIG_DIR")
 EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
 DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 
-# Check for volumes, create them if necessary
-vols=($SHELL_CONFIG_VOL)
-for vol in "${vols[@]}"; do
-    if ! docker volume ls -q | grep -q $vol; then
-        echo "Creating volume: $vol" >&2
-        docker volume create $vol > /dev/null
-    fi
-done
-
 # Ensure the files and directories we expect exist
 ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
@@ -156,6 +144,7 @@ ensure_exists d 700 $HOME/.xpra
 ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.claude
 ensure_exists d 700 $HOME/.taughz
+ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
 ensure_exists d 700 $HOME/.taughz/doom.d
 
@@ -210,7 +199,7 @@ CLAUDE_FLAGS=(
 )
 
 SHELL_FLAGS=(
-    --mount "type=volume,src=$SHELL_CONFIG_VOL,dst=$SHELL_CONFIG_DIR"
+    --mount "type=bind,src=$HOME/.taughz/shell,dst=$SHELL_CONFIG_DIR"
 )
 
 emacs_flags=()
@@ -232,8 +221,8 @@ if [ $use_tz -ne 0 ]; then
 fi
 
 echo_cmd docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
-    "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" \
-    "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${fixed_user_flags[@]}" \
+    "${fixed_user_flags[@]}"  "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" \
+    "${GIT_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${SHELL_FLAGS[@]}" \
     "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
 
 exit 0

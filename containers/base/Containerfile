@@ -159,12 +159,6 @@ ENV SHELL_CONFIG_DIR="$VOLS_DIR/shell"
 RUN mkdir -m 755 $SHELL_CONFIG_DIR \
     && chown $DEV_USER_UID:$DEV_USER_GID $SHELL_CONFIG_DIR
 
-# Setup Bash history
-RUN BASH_CONFIG_DIR=$SHELL_CONFIG_DIR/bash \
-    && sudo -u $DEV_USER mkdir -m 755 $BASH_CONFIG_DIR \
-    && sudo -u $DEV_USER touch $BASH_CONFIG_DIR/bash_history \
-    && sudo -u $DEV_USER ln -s $BASH_CONFIG_DIR/bash_history $DEV_USER_HOME/.bash_history
-
 # Modify PS1 to put a * after the hostname. This is sort of useful because it
 # let's you quickly see if you are inside the container or not.
 RUN sed -i 's;PS1.*\\h;&*;' /root/.bashrc $DEV_USER_HOME/.bashrc
@@ -184,6 +178,7 @@ RUN mkdir -m 755 $ENTRYPOINT_DIR
 COPY entrypoint.sh /entrypoint.sh
 COPY fix_user.sh $ENTRYPOINT_DIR/00_fix_user.sh
 COPY login_shim.sh $ENTRYPOINT_DIR/01_login_shim.sh
+COPY shell_init.sh $ENTRYPOINT_DIR/04_shell_init.sh
 
 # Add ~/.bashrc.d support to the user's ~/.bashrc
 COPY bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
