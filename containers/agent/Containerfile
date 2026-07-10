@@ -19,11 +19,11 @@ ARG TERM="dumb"
 # You can use the following URL to determine the current stable version:
 # https://downloads.claude.ai/claude-code-releases/stable
 
-ARG CLAUDE_VERSION="2.1.153"
+ARG CLAUDE_VERSION="2.1.197"
 ARG CLAUDE_PLATFORM="linux-x64"
 ARG CLAUDE_URL="https://downloads.claude.ai/claude-code-releases/$CLAUDE_VERSION/$CLAUDE_PLATFORM/claude"
 ARG CLAUDE_FILE="/usr/local/bin/claude"
-ARG CLAUDE_SHA256SUM="214f603f31942162dac9a65f18d43b3ac646ae215240fad481c4aad6c60f2e38"
+ARG CLAUDE_SHA256SUM="f54e69cbc89b2da61a415700af7ff52a147e862517d4f1b0eecf768448cf7f83"
 
 # You can find the official checksum here:
 # https://downloads.claude.ai/claude-code-releases/$CLAUDE_VERSION/manifest.json
