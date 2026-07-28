@@ -125,7 +125,7 @@ RUN { \
     } >> $DEV_USER_HOME/.bashrc
 
 # Copy entry point for config initialization
-COPY emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
+COPY entrypoint.d/emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
 
 # Persistent storage for the Emacs and Doom config directories. These
 # directories will be initialized with the Doom files from above.

@@ -62,11 +62,11 @@ RUN groupmod --new-name $DEV_USER \
 
 # We cannot update PATH in the Dockerfile (it needs to be a straight assignment,
 # not using shell expansion, etc), so we must update PATH at runtime
-COPY fix_path.sh $ENTRYPOINT_DIR/02_fix_path.sh
+COPY entrypoint.d/fix_path.sh $ENTRYPOINT_DIR/12_fix_path.sh
 
 # We cannot fix the volumes in the Dockerfile, because their contents are frozen
 # after the VOLUME instruction, so we must update the ownership at runtime
-COPY fix_volumes.sh $ENTRYPOINT_DIR/03_fix_volumes.sh
+COPY entrypoint.d/fix_volumes.sh $ENTRYPOINT_DIR/13_fix_volumes.sh
 
 # Switch to non-root user
 USER $DEV_USER

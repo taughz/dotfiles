@@ -60,7 +60,7 @@ RUN apt-get update \
 RUN rosdep init
 
 # Copy the ROS entry point
-COPY ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
+COPY entrypoint.d/ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
 
 # Switch to non-root user
 USER $DEV_USER

@@ -176,9 +176,9 @@ RUN mkdir -m 755 $ENTRYPOINT_DIR
 
 # Copy the entry point script, login shim, etc
 COPY entrypoint.sh /entrypoint.sh
-COPY fix_user.sh $ENTRYPOINT_DIR/00_fix_user.sh
-COPY login_shim.sh $ENTRYPOINT_DIR/01_login_shim.sh
-COPY shell_init.sh $ENTRYPOINT_DIR/04_shell_init.sh
+COPY entrypoint.d/fix_user.sh $ENTRYPOINT_DIR/10_fix_user.sh
+COPY entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
+COPY entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 
 # Add ~/.bashrc.d support to the user's ~/.bashrc
 COPY bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
