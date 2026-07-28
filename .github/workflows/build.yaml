@@ -42,19 +42,22 @@ jobs:
           echo "tag=$tag" >> $GITHUB_OUTPUT
       - name: Build Emacs Builder Image
         id: emacs_builder
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.EMACS_BUILDER_IMAGE }}
+          image: ${{ env.EMACS_BUILDER_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs/emacs_builder
           dockerfile: Containerfile
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.EMACS_BUILDER_IMAGE }}:${{ steps.target_tag.outputs.tag }}
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.EMACS_BUILDER_IMAGE) || '' }}
       - name: Build Doom Cache Image
         id: doom_cache
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.DOOM_CACHE_IMAGE }}
+          image: ${{ env.DOOM_CACHE_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs/doom_cache
           dockerfile: Containerfile
           build-args: |
@@ -62,76 +65,97 @@ jobs:
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.DOOM_CACHE_IMAGE }}:${{ steps.target_tag.outputs.tag }}
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.DOOM_CACHE_IMAGE) || '' }}
       - name: Build Base Layer
         id: base
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-base
           context: containers/base
           dockerfile: Containerfile
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-base
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-base', env.TARGET_IMAGE) || '' }}
       - name: Build Agent Layer
         id: agent
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-agent
           context: containers/agent
           dockerfile: Containerfile
           base-image: ${{ steps.base.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-agent
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-agent', env.TARGET_IMAGE) || '' }}
       - name: Build C++ Layer
         id: cpp
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-cpp
           context: containers/cpp
           dockerfile: Containerfile
           base-image: ${{ steps.agent.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-cpp
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-cpp', env.TARGET_IMAGE) || '' }}
       - name: Build Python Layer
         id: python
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-python
           context: containers/python
           dockerfile: Containerfile
           base-image: ${{ steps.cpp.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-python
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-python', env.TARGET_IMAGE) || '' }}
       - name: Build ROS Layer
         id: ros
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-ros
           context: containers/ros
           dockerfile: Containerfile
           base-image: ${{ steps.python.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-ros
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-ros', env.TARGET_IMAGE) || '' }}
       - name: Build EMSDK Layer
         id: emsdk
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emsdk
           context: containers/emsdk
           dockerfile: Containerfile
           base-image: ${{ steps.ros.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emsdk
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-emsdk', env.TARGET_IMAGE) || '' }}
       - name: Build Emacs Layer
         id: emacs
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emacs
           context: containers/emacs
           dockerfile: Containerfile
           base-image: ${{ steps.emsdk.outputs.image }}
@@ -141,9 +165,12 @@ jobs:
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emacs
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-emacs', env.TARGET_IMAGE) || '' }}
       - name: Build Xpra Layer
         id: xpra
-        uses: taughz/hn2b@2b065e13aafcbe62e4f104412243382011ab836d
+        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
           context: containers/xpra
@@ -152,3 +179,6 @@ jobs:
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-xpra', env.TARGET_IMAGE) || '' }}
