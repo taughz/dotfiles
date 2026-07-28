@@ -155,7 +155,7 @@ jobs:
         id: emacs
         uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
         with:
-          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emacs
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs
           dockerfile: Containerfile
           base-image: ${{ steps.emsdk.outputs.image }}
@@ -166,8 +166,8 @@ jobs:
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
           cache-from: |
-            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emacs
-            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-emacs', env.TARGET_IMAGE) || '' }}
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.TARGET_IMAGE) || '' }}
       - name: Build Xpra Layer
         id: xpra
         uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
