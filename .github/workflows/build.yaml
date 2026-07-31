@@ -42,7 +42,7 @@ jobs:
           echo "tag=$tag" >> $GITHUB_OUTPUT
       - name: Build Emacs Builder Image
         id: emacs_builder
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.EMACS_BUILDER_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs/emacs_builder
@@ -55,7 +55,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.EMACS_BUILDER_IMAGE) || '' }}
       - name: Build Doom Cache Image
         id: doom_cache
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.DOOM_CACHE_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs/doom_cache
@@ -70,7 +70,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.DOOM_CACHE_IMAGE) || '' }}
       - name: Build Base Layer
         id: base
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-base
           context: containers/base
@@ -83,7 +83,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-base', env.TARGET_IMAGE) || '' }}
       - name: Build Agent Layer
         id: agent
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-agent
           context: containers/agent
@@ -97,7 +97,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-agent', env.TARGET_IMAGE) || '' }}
       - name: Build C++ Layer
         id: cpp
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-cpp
           context: containers/cpp
@@ -111,7 +111,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-cpp', env.TARGET_IMAGE) || '' }}
       - name: Build Python Layer
         id: python
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-python
           context: containers/python
@@ -125,7 +125,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-python', env.TARGET_IMAGE) || '' }}
       - name: Build ROS Layer
         id: ros
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-ros
           context: containers/ros
@@ -139,7 +139,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-ros', env.TARGET_IMAGE) || '' }}
       - name: Build EMSDK Layer
         id: emsdk
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emsdk
           context: containers/emsdk
@@ -153,7 +153,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-emsdk', env.TARGET_IMAGE) || '' }}
       - name: Build Emacs Layer
         id: emacs
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs
@@ -170,7 +170,7 @@ jobs:
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.TARGET_IMAGE) || '' }}
       - name: Build Xpra Layer
         id: xpra
-        uses: taughz/hn2b@4bf6c223193412b9d004ba5ae94040c4558c7213
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
           context: containers/xpra
