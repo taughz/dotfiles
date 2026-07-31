@@ -54,14 +54,9 @@ RUN pipx install --global \
         tox \
         uv
 
-# Enable Poetry autocompletion
-RUN poetry completions bash > $DEV_USER_HOME/.bashrc_poetry \
-    && { \
-        echo; \
-        echo "# Source Poetry autocompletion"; \
-        echo "source \"\$HOME/.bashrc_poetry\""; \
-    } >> $DEV_USER_HOME/.bashrc
-
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
+
+# Enable Poetry autocompletion
+RUN poetry completions bash > $DEV_USER_HOME/.bashrc.d/21_python_poetry_completions.bash

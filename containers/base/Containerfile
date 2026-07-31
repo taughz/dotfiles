@@ -163,16 +163,14 @@ RUN mkdir -m 755 $SHELL_CONFIG_DIR \
 # let's you quickly see if you are inside the container or not.
 RUN sed -i 's;PS1.*\\h;&*;' /root/.bashrc $DEV_USER_HOME/.bashrc
 
-# Enable GPG agent by adding GPG_TTY
-RUN { \
-        echo; \
-        echo "# Set this for gpg-agent"; \
-        echo "export GPG_TTY=\$(tty)"; \
-    } >> $DEV_USER_HOME/.bashrc
-
 # Create directory for entry point scripts
 ENV ENTRYPOINT_DIR="/etc/entrypoint.d"
 RUN mkdir -m 755 $ENTRYPOINT_DIR
+
+# Add ~/.bashrc.d support to the user's ~/.bashrc
+COPY bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
+RUN cat /tmp/bashrcd_fragment.bash >> $DEV_USER_HOME/.bashrc \
+    && sudo -u $DEV_USER mkdir -m 755 $DEV_USER_HOME/.bashrc.d
 
 # Copy the entry point script, login shim, etc
 COPY entrypoint.sh /entrypoint.sh
@@ -180,10 +178,8 @@ COPY entrypoint.d/fix_user.sh $ENTRYPOINT_DIR/10_fix_user.sh
 COPY entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
 COPY entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 
-# Add ~/.bashrc.d support to the user's ~/.bashrc
-COPY bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
-RUN cat /tmp/bashrcd_fragment.bash >> $DEV_USER_HOME/.bashrc \
-    && sudo -u $DEV_USER mkdir -m 755 $DEV_USER_HOME/.bashrc.d
+# Copy the GPG setup, etc
+COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash
 
 # Here we set the entry point to the main entry point script. This script in
 # turn execs a chain of other entry points. This allows other images to layer

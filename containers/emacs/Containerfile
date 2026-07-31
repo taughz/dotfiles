@@ -113,19 +113,11 @@ RUN mkdir -p $(dirname $DE_NERDFONT_FILE) \
     && curl -fL -o $DE_NERDFONT_FILE "$DE_NERDFONT_URL" \
     && fc-cache -f
 
-# Add VTerm integration to Bash config
-RUN { \
-        echo; \
-        echo "# When using VTerm, include the Bash integration"; \
-        echo "if [ \"\${INSIDE_EMACS}\" = \"vterm\" \\"; \
-        echo "      -a -n \"\${EMACS_VTERM_PATH}\" \\"; \
-        echo "      -a -f \"\${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh\" ]; then"; \
-        echo "    source \"\${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh\""; \
-        echo "fi"; \
-    } >> $DEV_USER_HOME/.bashrc
-
 # Copy entry point for config initialization
 COPY entrypoint.d/emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
+
+# Add VTerm integration to Bash config
+COPY --chown=$DEV_USER bashrc.d/emacs_setup.bash $DEV_USER_HOME/.bashrc.d/80_emacs_setup.bash
 
 # Persistent storage for the Emacs and Doom config directories. These
 # directories will be initialized with the Doom files from above.

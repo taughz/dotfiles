@@ -59,9 +59,6 @@ RUN apt-get update \
 # Bootstrap Rosdep
 RUN rosdep init
 
-# Copy the ROS entry point
-COPY entrypoint.d/ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
-
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
@@ -75,12 +72,8 @@ RUN colcon --log-base /dev/null mixin add default "$COLCON_MIXIN_URL" \
     && colcon --log-base /dev/null metadata add default "$COLCON_METADATA_URL" \
     && colcon --log-base /dev/null metadata update
 
-# Copy the extra bashrc for completion, etc
-COPY bashrc_ros.bash $DEV_USER_HOME/.bashrc_ros
+# Copy the ROS entry point
+COPY entrypoint.d/ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
 
-# Enable ROS autocompletion
-RUN { \
-        echo; \
-        echo "# Source extra ROS shell helpers"; \
-        echo "source \"\$HOME/.bashrc_ros\""; \
-    } >> $DEV_USER_HOME/.bashrc
+# Copy the ROS setup for autocompletion, etc
+COPY --chown=$DEV_USER bashrc.d/ros_setup.bash $DEV_USER_HOME/.bashrc.d/22_ros_setup.bash
