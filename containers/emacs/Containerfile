@@ -36,6 +36,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         aspell \
         aspell-en \
+        fonts-noto-color-emoji \
         libcanberra-gtk3-module \
         libtool-bin \
         xorg \
