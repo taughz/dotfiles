@@ -20,4 +20,22 @@ LOGNAME=${LOGNAME:-$(id -u --name)}
 SHELL=${SHELL:-$(getent passwd $(id -u) | cut -d : -f 7)}
 TERM=${TERM:-dumb}
 
+# XDG user directories
+export XDG_DATA_HOME XDG_CONFIG_HOME XDG_STATE_HOME XDG_CACHE_HOME
+XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
+XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+
+# Don't give root a runtime directory
+if [ $(id -u) -ne 0 ]; then
+    export XDG_RUNTIME_DIR
+    XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+fi
+
+# XDG system directories
+export XDG_DATA_DIRS XDG_CONFIG_DIRS
+XDG_DATA_DIRS=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
+XDG_CONFIG_DIRS=${XDG_CONFIG_DIRS:-/etc/xdg}
+
 exec "$@"
