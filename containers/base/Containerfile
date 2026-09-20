@@ -33,6 +33,7 @@ RUN apt-get update \
         bzip2 \
         ca-certificates \
         curl \
+        direnv \
         faketime \
         file \
         gnupg \
