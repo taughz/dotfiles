@@ -181,6 +181,7 @@ COPY entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 
 # Copy the GPG setup, etc
 COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash
+COPY --chown=$DEV_USER bashrc.d/direnv_setup.bash $DEV_USER_HOME/.bashrc.d/11_direnv_setup.bash
 
 # Here we set the entry point to the main entry point script. This script in
 # turn execs a chain of other entry points. This allows other images to layer
