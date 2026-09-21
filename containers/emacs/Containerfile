@@ -117,7 +117,7 @@ RUN mkdir -p $(dirname $DE_NERDFONT_FILE) \
     && fc-cache -f
 
 # Copy entry point for config initialization
-COPY entrypoint.d/emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
+COPY --chown=root entrypoint.d/emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
 
 # Add VTerm integration to Bash config
 COPY --chown=$DEV_USER bashrc.d/emacs_setup.bash $DEV_USER_HOME/.bashrc.d/80_emacs_setup.bash
@@ -127,7 +127,7 @@ COPY --chown=$DEV_USER bashrc.d/emacs_setup.bash $DEV_USER_HOME/.bashrc.d/80_ema
 VOLUME ["$EMACS_CONFIG_DIR", "$DOOM_CONFIG_DIR"]
 
 # Copy the Emacs shim for the default command
-COPY emacs_shim.sh /emacs_shim.sh
+COPY --chown=root emacs_shim.sh /emacs_shim.sh
 
 # Launch Emacs by default
 CMD ["/emacs_shim.sh", "/bin/bash"]

@@ -73,7 +73,7 @@ RUN colcon --log-base /dev/null mixin add default "$COLCON_MIXIN_URL" \
     && colcon --log-base /dev/null metadata update
 
 # Copy the ROS entry point
-COPY entrypoint.d/ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
+COPY --chown=root entrypoint.d/ros_entrypoint.sh $ENTRYPOINT_DIR/20_ros_entrypoint.sh
 
 # Copy the ROS setup for autocompletion, etc
 COPY --chown=$DEV_USER bashrc.d/ros_setup.bash $DEV_USER_HOME/.bashrc.d/22_ros_setup.bash

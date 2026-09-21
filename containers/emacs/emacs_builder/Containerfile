@@ -65,4 +65,4 @@ RUN EMACS_TMP=$(mktemp -d) \
     && rm -rf $EMACS_TARBALL_FILE $EMACS_TMP
 
 # Copy the list of runtime package dependencies to install later
-COPY emacs_runtime_deps.txt /usr/local/share/emacs/emacs_runtime_deps.txt
+COPY --chown=root emacs_runtime_deps.txt /usr/local/share/emacs/emacs_runtime_deps.txt
