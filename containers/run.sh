@@ -143,6 +143,7 @@ ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.xpra
 ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.claude
+ensure_exists d 700 $HOME/.copilot
 ensure_exists d 700 $HOME/.taughz
 ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
@@ -198,6 +199,10 @@ CLAUDE_FLAGS=(
     --mount "type=bind,src=$HOME/.claude,dst=$CHOME/.claude"
 )
 
+COPILOT_FLAGS=(
+    --mount "type=bind,src=$HOME/.copilot,dst=$CHOME/.copilot"
+)
+
 SHELL_FLAGS=(
     --mount "type=bind,src=$HOME/.taughz/shell,dst=$SHELL_CONFIG_DIR"
 )
@@ -220,9 +225,10 @@ if [ $use_tz -ne 0 ]; then
     tz_flags+=(--mount "type=bind,src=/etc/localtime,dst=/etc/localtime")
 fi
 
-echo_cmd docker run --rm --tty --interactive --privileged --network=host --env "TERM=$TERM" \
-    "${fixed_user_flags[@]}"  "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" \
-    "${GIT_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${SHELL_FLAGS[@]}" \
-    "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
+echo_cmd docker run --rm --tty --interactive --privileged --network=host \
+    --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
+    "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" \
+    "${COPILOT_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" \
+    "${tz_flags[@]}" "$TARGET_IMAGE"
 
 exit 0

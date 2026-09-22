@@ -32,6 +32,25 @@ RUN curl -fL -o $CLAUDE_FILE "$CLAUDE_URL" \
     && (echo "$CLAUDE_SHA256SUM  $CLAUDE_FILE" | sha256sum --quiet -c -) \
     && chmod +x $CLAUDE_FILE
 
+# You can use the following URL to determine the current stable version:
+# https://api.github.com/repos/github/copilot-cli/releases/latest
+
+ARG COPILOT_VERSION="1.0.87"
+ARG COPILOT_PLATFORM="linux-x64"
+ARG COPILOT_URL="https://github.com/github/copilot-cli/releases/download/v$COPILOT_VERSION/copilot-$COPILOT_PLATFORM.tar.gz"
+ARG COPILOT_FILE="/usr/local/bin/copilot"
+ARG COPILOT_SHA256SUM="49d81b184f1a1b358af676155fe97e341b9d9f0bc8dd25190dfe17087669b5b9"
+
+# You can find the official checksums here:
+# https://github.com/github/copilot-cli/releases/download/v$COPILOT_VERSION/SHA256SUMS.txt
+
+RUN tmp_copilot_tarball=$(mktemp /tmp/copilot.XXXXXXXXXX.tar.gz) \
+    && curl -fL -o $tmp_copilot_tarball "$COPILOT_URL" \
+    && (echo "$COPILOT_SHA256SUM  $tmp_copilot_tarball" | sha256sum --quiet -c -) \
+    && tar -xzOf $tmp_copilot_tarball copilot > $COPILOT_FILE \
+    && chmod +x $COPILOT_FILE \
+    && rm -f $tmp_copilot_tarball
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
