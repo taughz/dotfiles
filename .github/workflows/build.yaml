@@ -2,7 +2,7 @@
 
 # Copyright (c) 2025 Tim Perkins
 
-name: Build Image
+name: Build Images
 
 on:
   push:
@@ -24,9 +24,12 @@ defaults:
     shell: bash
 
 jobs:
-  build_image:
-    name: Build Image
+  build_emacs_image:
+    name: Build Emacs Image
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.target_tag.outputs.tag }}
+      image: ${{ steps.emacs.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -168,17 +171,25 @@ jobs:
           cache-from: |
             type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main', env.TARGET_IMAGE) || '' }}
+
+  build_xpra_image:
+    name: Build Xpra Image
+    needs: build_emacs_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Build Xpra Layer
         id: xpra
         uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
         with:
-          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
+          image: ${{ env.TARGET_IMAGE }}:${{ needs.build_emacs_image.outputs.tag }}-xpra
           context: containers/xpra
           dockerfile: Containerfile
-          base-image: ${{ steps.emacs.outputs.image }}
+          base-image: ${{ needs.build_emacs_image.outputs.image }}
           skip-pull: true
           push: true
           registry-pass: ${{ secrets.REGISTRY_TOKEN }}
           cache-from: |
-            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-xpra
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ needs.build_emacs_image.outputs.tag }}-xpra
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-xpra', env.TARGET_IMAGE) || '' }}

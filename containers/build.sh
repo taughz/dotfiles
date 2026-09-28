@@ -46,7 +46,7 @@ Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-b | --agent]
 Make the Taughz development image.
 
     -t | --tag TAG      Tag the image with the given tag
-    -a | --all          Build all layers
+    -a | --all          Build all layers (except Xpra)
     -b | --agent        Build the agent layer
     -c | --cpp          Build the C++ layer
     -p | --python       Build the Python layer
@@ -105,7 +105,7 @@ done
 while getopts "t:abcprwexuknlh" arg &> /dev/null; do
     case "$arg" in
         "t") target_tag=$OPTARG;;
-        "a") for co in "${IMAGES[@]}"; do layer_requested[$co]=1; done;;
+        "a") for co in "${IMAGES[@]}"; do [ "$co" = "XPRA" ] || layer_requested[$co]=1; done;;
         "b") layer_requested["AGENT"]=1;;
         "c") layer_requested["CPP"]=1;;
         "p") layer_requested["PYTHON"]=1;;
