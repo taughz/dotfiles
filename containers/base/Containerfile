@@ -83,10 +83,24 @@ ARG GIT_KEY_FILE="/usr/share/keyrings/git-keyring.gpg"
 # Add Git repo
 RUN curl -fL "$GIT_KEY_URL" | gpg --dearmor > $GIT_KEY_FILE \
     && { \
-        echo "# GIT Repo"; \
+        echo "# Git Repo"; \
         echo "deb [signed-by=$GIT_KEY_FILE] $GIT_DEB_URL $GIT_DEB_DIST $GIT_DEB_COMP"; \
         echo "deb-src [signed-by=$GIT_KEY_FILE] $GIT_DEB_URL $GIT_DEB_DIST $GIT_DEB_COMP"; \
     } >> /etc/apt/sources.list.d/git.list
+
+# GitHub CLI variables
+ARG GH_DEB_URL="https://cli.github.com/packages"
+ARG GH_DEB_DIST="stable"
+ARG GH_DEB_COMP="main"
+ARG GH_KEY_URL="https://cli.github.com/packages/githubcli-archive-keyring.gpg"
+ARG GH_KEY_FILE="/usr/share/keyrings/githubcli-archive-keyring.gpg"
+
+# Add GitHub CLI repo
+RUN curl -fL -o $GH_KEY_FILE "$GH_KEY_URL" \
+    && { \
+        echo "# GitHub CLI Repo"; \
+        echo "deb [signed-by=$GH_KEY_FILE] $GH_DEB_URL $GH_DEB_DIST $GH_DEB_COMP"; \
+    } >> /etc/apt/sources.list.d/github-cli.list
 
 # Install fundamental dev tools
 RUN apt-get update \
@@ -94,6 +108,7 @@ RUN apt-get update \
         cmake \
         g++ \
         gcc \
+        gh \
         git \
         make \
         python-is-python3 \
@@ -130,6 +145,10 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
         --create-home \
         $DEV_USER \
     && usermod --append --groups sudo $DEV_USER
+
+# Make config directory, so bind mounts don't create it as root
+RUN mkdir -m 755 $DEV_USER_HOME/.config \
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config
 
 # Make local bin directory and add to path
 RUN mkdir -m 755 $DEV_USER_HOME/.local \

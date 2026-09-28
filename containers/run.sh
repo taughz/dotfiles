@@ -126,6 +126,20 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Find a GitHub token, falling back to GITHUB_TOKEN, then the GitHub CLI.
+# It must be exported so it can be passed to the container by name.
+export GH_TOKEN
+if [ -z "${GH_TOKEN:-}" ]; then
+    GH_TOKEN=${GITHUB_TOKEN:-}
+    if [ -z "$GH_TOKEN" ] && command -v gh &> /dev/null; then
+        GH_TOKEN=$(gh auth token 2> /dev/null || true)
+    fi
+    if [ -z "$GH_TOKEN" ]; then
+        echo "WARNING: No GitHub token, GitHub CLI may not be authenticated" >&2
+        unset GH_TOKEN
+    fi
+fi
+
 # The variables from inside the container
 IMAGE_ENV=$(docker run --rm $TARGET_IMAGE printenv)
 DEV_USER=$(get_from_env "$IMAGE_ENV" "DEV_USER")
@@ -140,6 +154,7 @@ ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
 ensure_exists d 700 $HOME/.gnupg
 ensure_exists f 644 $HOME/.gitconfig
+ensure_exists d 700 $HOME/.config/gh
 ensure_exists d 700 $HOME/.xpra
 ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.claude
@@ -190,6 +205,11 @@ GIT_FLAGS=(
     --mount "type=bind,src=$HOME/.gitconfig,dst=$CHOME/.gitconfig"
 )
 
+GH_FLAGS=(
+    --env GH_TOKEN  # Name only so the value is not visible
+    --mount "type=bind,src=$HOME/.config/gh,dst=$CHOME/.config/gh"
+)
+
 XPRA_FLAGS=(
     --mount "type=bind,src=$HOME/.xpra,dst=$CHOME/.xpra"
 )
@@ -227,8 +247,8 @@ fi
 
 echo_cmd docker run --rm --tty --interactive --privileged --network=host \
     --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
-    "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" \
-    "${COPILOT_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" \
-    "${tz_flags[@]}" "$TARGET_IMAGE"
+    "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
+    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
+    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
 
 exit 0
