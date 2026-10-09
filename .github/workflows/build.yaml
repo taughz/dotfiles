@@ -154,6 +154,20 @@ jobs:
           cache-from: |
             type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-emsdk
             ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-emsdk', env.TARGET_IMAGE) || '' }}
+      - name: Build Miscellaneous Layer
+        id: misc
+        uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
+        with:
+          image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-misc
+          context: containers/misc
+          dockerfile: Containerfile
+          base-image: ${{ steps.emsdk.outputs.image }}
+          skip-pull: true
+          push: true
+          registry-pass: ${{ secrets.REGISTRY_TOKEN }}
+          cache-from: |
+            type=registry,ref=${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}-misc
+            ${{ github.event_name == 'pull_request' && format('type=registry,ref={0}:main-misc', env.TARGET_IMAGE) || '' }}
       - name: Build Emacs Layer
         id: emacs
         uses: taughz/hn2b@70594dcbb344b73ce700fdde3e31e0638bd45bef
@@ -161,7 +175,7 @@ jobs:
           image: ${{ env.TARGET_IMAGE }}:${{ steps.target_tag.outputs.tag }}
           context: containers/emacs
           dockerfile: Containerfile
-          base-image: ${{ steps.emsdk.outputs.image }}
+          base-image: ${{ steps.misc.outputs.image }}
           build-args: |
             EMACS_BUILDER_IMAGE=${{ steps.emacs_builder.outputs.image }}
             DOOM_CACHE_IMAGE=${{ steps.doom_cache.outputs.image }}
