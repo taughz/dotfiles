@@ -57,6 +57,23 @@ RUN BAZELISK_TMP=$(mktemp) \
     && install -m 755 $BAZELISK_TMP $BAZELISK_FILE \
     && rm -f $BAZELISK_TMP
 
+# Variables for prek
+ARG PREK_VER="0.5.5"
+ARG PREK_URL="https://github.com/j178/prek/releases/download/v$PREK_VER/prek-x86_64-unknown-linux-gnu.tar.gz"
+ARG PREK_MD5SUM="1c75c6cfa0a53579823ebc679816f232"
+ARG PREK_FILE="/usr/local/bin/prek"
+ARG PREK_COMP_FILE="/etc/bash_completion.d/prek"
+
+# Install prek and enable Bash completion
+RUN PREK_TAR_TMP=$(mktemp) \
+    && PREK_TMP=$(mktemp) \
+    && curl -fsSL -o $PREK_TAR_TMP "$PREK_URL" \
+    && (echo "$PREK_MD5SUM  $PREK_TAR_TMP" | md5sum --quiet -c -) \
+    && tar -xzOf $PREK_TAR_TMP --wildcards '*/prek' > $PREK_TMP \
+    && install -m 755 $PREK_TMP $PREK_FILE \
+    && $PREK_FILE util generate-shell-completion bash > $PREK_COMP_FILE \
+    && rm -f $PREK_TAR_TMP $PREK_TMP
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
