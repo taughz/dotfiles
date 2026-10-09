@@ -1,0 +1,62 @@
+# misc/Containerfile
+
+# Copyright (c) 2026 Tim Perkins
+
+ARG BASE_IMAGE="scratch"
+FROM $BASE_IMAGE
+
+# Set shell to Bash with better error flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+# Ensure root user
+USER root
+WORKDIR /
+
+# Make sure we don't get prompted
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG TERM="dumb"
+
+# Variables for Bazel
+ARG BAZEL_VER="9.2.0"
+ARG BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VER/bazel-$BAZEL_VER-linux-x86_64"
+ARG BAZEL_MD5SUM="4339221b8a9d6235353f218a4dc83add"
+ARG BAZEL_FILE="/usr/local/bin/bazel"
+ARG BAZEL_COMP_HEAD_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZEL_VER/scripts/bazel-complete-header.bash"
+ARG BAZEL_COMP_TEMP_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZEL_VER/scripts/bazel-complete-template.bash"
+ARG BAZEL_COMP_FILE="/etc/bash_completion.d/bazel"
+
+# Install Bazel and enable Bash completion. The completion script is assembled the same way as
+# Bazel's own `scripts/generate_bash_completion.sh`, then also registered for `bazelisk`. The
+# throwaway output root keeps the server state out of root's home directory.
+RUN BAZEL_TMP=$(mktemp) \
+    && BAZEL_COMP_TMP=$(mktemp) \
+    && BAZEL_OUT_TMP=$(mktemp -d) \
+    && curl -fsSL -o $BAZEL_TMP "$BAZEL_URL" \
+    && (echo "$BAZEL_MD5SUM  $BAZEL_TMP" | md5sum --quiet -c -) \
+    && install -m 755 $BAZEL_TMP $BAZEL_FILE \
+    && curl -fsSL "$BAZEL_COMP_HEAD_URL" > $BAZEL_COMP_TMP \
+    && $BAZEL_FILE --batch --output_user_root=$BAZEL_OUT_TMP help completion >> $BAZEL_COMP_TMP \
+    && curl -fsSL "$BAZEL_COMP_TEMP_URL" >> $BAZEL_COMP_TMP \
+    && { \
+        echo '_bazelisk__complete() { local BAZEL=bazelisk; _bazel__complete "$@"; }'; \
+        echo "complete -F _bazelisk__complete -o nospace bazelisk"; \
+    } >> $BAZEL_COMP_TMP \
+    && install -m 644 $BAZEL_COMP_TMP $BAZEL_COMP_FILE \
+    && rm -rf $BAZEL_TMP $BAZEL_COMP_TMP $BAZEL_OUT_TMP
+
+# Variables for Bazelisk
+ARG BAZELISK_VER="1.29.0"
+ARG BAZELISK_URL="https://github.com/bazelbuild/bazelisk/releases/download/v$BAZELISK_VER/bazelisk-linux-amd64"
+ARG BAZELISK_MD5SUM="bf259781802f31e42aa6a31a7f61c218"
+ARG BAZELISK_FILE="/usr/local/bin/bazelisk"
+
+# Install Bazelisk without the `bazel` wrapper, so it must be invoked as `bazelisk`
+RUN BAZELISK_TMP=$(mktemp) \
+    && curl -fsSL -o $BAZELISK_TMP "$BAZELISK_URL" \
+    && (echo "$BAZELISK_MD5SUM  $BAZELISK_TMP" | md5sum --quiet -c -) \
+    && install -m 755 $BAZELISK_TMP $BAZELISK_FILE \
+    && rm -f $BAZELISK_TMP
+
+# Switch to non-root user
+USER $DEV_USER
+WORKDIR $DEV_USER_HOME

@@ -17,7 +17,7 @@ DEFAULT_TARGET_TAG="built"
 EMACS_BUILDER_REPO="ghcr.io/taughz/dev-emacs-builder"
 DOOM_CACHE_REPO="ghcr.io/taughz/dev-doom-cache"
 
-IMAGES=("BASE" "AGENT" "CPP" "PYTHON" "ROS" "EMSDK" "EMACS" "XPRA" "USER")
+IMAGES=("BASE" "AGENT" "CPP" "PYTHON" "ROS" "EMSDK" "MISC" "EMACS" "XPRA" "USER")
 
 declare -A IMAGE_DIRS=(
     ["BASE"]="$SCRIPT_DIR/base"
@@ -26,6 +26,7 @@ declare -A IMAGE_DIRS=(
     ["PYTHON"]="$SCRIPT_DIR/python"
     ["ROS"]="$SCRIPT_DIR/ros"
     ["EMSDK"]="$SCRIPT_DIR/emsdk"
+    ["MISC"]="$SCRIPT_DIR/misc"
     ["EMACS"]="$SCRIPT_DIR/emacs"
     ["EMACS_BUILDER"]="$SCRIPT_DIR/emacs/emacs_builder"
     ["DOOM_CACHE"]="$SCRIPT_DIR/emacs/doom_cache"
@@ -40,8 +41,8 @@ function show_usage() {
     cat <<EOF >&2
 Usage: $(basename "$0") [-t | --tag TAG] [-a | --all] [-b | --agent]
             [-c | --cpp] [-p | --python] [-r | --ros] [-w | --emsdk]
-            [-e | --emacs] [-x | --xpra] [-u | --user] [-k | --no-cache]
-            [-n | --name] [-l | --log] [-h | --help]
+            [-m | --misc] [-e | --emacs] [-x | --xpra] [-u | --user]
+            [-k | --no-cache] [-n | --name] [-l | --log] [-h | --help]
 
 Make the Taughz development image.
 
@@ -52,6 +53,7 @@ Make the Taughz development image.
     -p | --python       Build the Python layer
     -r | --ros          Build the ROS layer
     -w | --emsdk        Build the EMSDK (Emscripten) layer
+    -m | --misc         Build the miscellaneous layer
     -e | --emacs        Build the Emacs layer
     -x | --xpra         Build the Xpra layer
     -u | --user         Build the user layer
@@ -71,6 +73,7 @@ declare -A layer_requested=(
     ["PYTHON"]=0
     ["ROS"]=0
     ["EMSDK"]=0
+    ["MISC"]=0
     ["EMACS"]=0
     ["XPRA"]=0
     ["USER"]=0
@@ -89,6 +92,7 @@ for arg in "$@"; do
         "--python") set -- "$@" "-p";;
         "--ros") set -- "$@" "-r";;
         "--emsdk") set -- "$@" "-w";;
+        "--misc") set -- "$@" "-m";;
         "--emacs") set -- "$@" "-e";;
         "--xpra") set -- "$@" "-x";;
         "--user") set -- "$@" "-u";;
@@ -102,7 +106,7 @@ for arg in "$@"; do
 done
 
 # Parse short options using getopts
-while getopts "t:abcprwexuknlh" arg &> /dev/null; do
+while getopts "t:abcprwmexuknlh" arg &> /dev/null; do
     case "$arg" in
         "t") target_tag=$OPTARG;;
         "a") for co in "${IMAGES[@]}"; do [ "$co" = "XPRA" ] || layer_requested[$co]=1; done;;
@@ -111,6 +115,7 @@ while getopts "t:abcprwexuknlh" arg &> /dev/null; do
         "p") layer_requested["PYTHON"]=1;;
         "r") layer_requested["ROS"]=1;;
         "w") layer_requested["EMSDK"]=1;;
+        "m") layer_requested["MISC"]=1;;
         "e") layer_requested["EMACS"]=1;;
         "x") layer_requested["XPRA"]=1;;
         "u") layer_requested["USER"]=1;;
