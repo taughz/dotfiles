@@ -1,0 +1,6 @@
+# /etc/bazel.bazelrc
+
+# Use the shared disk and repository caches mounted by `run.sh`. These are in the system bazelrc,
+# so the user and workspace bazelrc files can still override them.
+common --disk_cache=~/.cache/bazel-shared/disk
+common --repository_cache=~/.cache/bazel-shared/repo

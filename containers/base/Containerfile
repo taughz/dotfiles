@@ -150,6 +150,10 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
 RUN mkdir -m 755 $DEV_USER_HOME/.config \
     && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config
 
+# Make cache directory, so bind mounts don't create it as root
+RUN mkdir -m 755 $DEV_USER_HOME/.cache \
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.cache
+
 # Make local bin directory and add to path
 RUN mkdir -m 755 $DEV_USER_HOME/.local \
     && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.local \

@@ -159,6 +159,11 @@ ensure_exists d 700 $HOME/.xpra
 ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.claude
 ensure_exists d 700 $HOME/.copilot
+ensure_exists f 644 $HOME/.bazelrc
+ensure_exists d 700 $HOME/.cache/bazel-taughz
+ensure_exists d 700 $HOME/.cache/bazel-shared
+ensure_exists d 700 $HOME/.cache/bazel-shared/disk
+ensure_exists d 700 $HOME/.cache/bazel-shared/repo
 ensure_exists d 700 $HOME/.taughz
 ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
@@ -223,6 +228,13 @@ COPILOT_FLAGS=(
     --mount "type=bind,src=$HOME/.copilot,dst=$CHOME/.copilot"
 )
 
+BAZEL_FLAGS=(
+    # Keep the output separate, but share the disk and repository caches
+    --mount "type=bind,src=$HOME/.bazelrc,dst=$CHOME/.bazelrc"
+    --mount "type=bind,src=$HOME/.cache/bazel-taughz,dst=$CHOME/.cache/bazel"
+    --mount "type=bind,src=$HOME/.cache/bazel-shared,dst=$CHOME/.cache/bazel-shared"
+)
+
 SHELL_FLAGS=(
     --mount "type=bind,src=$HOME/.taughz/shell,dst=$SHELL_CONFIG_DIR"
 )
@@ -248,7 +260,8 @@ fi
 echo_cmd docker run --rm --tty --interactive --privileged --network=host \
     --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
     "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
-    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
-    "${projects_flags[@]}" "${tz_flags[@]}" "$TARGET_IMAGE"
+    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${BAZEL_FLAGS[@]}" \
+    "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
+    "$TARGET_IMAGE"
 
 exit 0

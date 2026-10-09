@@ -25,9 +25,7 @@ ARG BAZEL_COMP_HEAD_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZ
 ARG BAZEL_COMP_TEMP_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZEL_VER/scripts/bazel-complete-template.bash"
 ARG BAZEL_COMP_FILE="/etc/bash_completion.d/bazel"
 
-# Install Bazel and enable Bash completion. The completion script is assembled the same way as
-# Bazel's own `scripts/generate_bash_completion.sh`, then also registered for `bazelisk`. The
-# throwaway output root keeps the server state out of root's home directory.
+# Install Bazel and enable Bash completion
 RUN BAZEL_TMP=$(mktemp) \
     && BAZEL_COMP_TMP=$(mktemp) \
     && BAZEL_OUT_TMP=$(mktemp -d) \
@@ -44,13 +42,16 @@ RUN BAZEL_TMP=$(mktemp) \
     && install -m 644 $BAZEL_COMP_TMP $BAZEL_COMP_FILE \
     && rm -rf $BAZEL_TMP $BAZEL_COMP_TMP $BAZEL_OUT_TMP
 
+# Copy system Bazel config
+COPY --chown=root bazel.bazelrc /etc/bazel.bazelrc
+
 # Variables for Bazelisk
 ARG BAZELISK_VER="1.29.0"
 ARG BAZELISK_URL="https://github.com/bazelbuild/bazelisk/releases/download/v$BAZELISK_VER/bazelisk-linux-amd64"
 ARG BAZELISK_MD5SUM="bf259781802f31e42aa6a31a7f61c218"
 ARG BAZELISK_FILE="/usr/local/bin/bazelisk"
 
-# Install Bazelisk without the `bazel` wrapper, so it must be invoked as `bazelisk`
+# Install Bazelisk (without masking Bazel)
 RUN BAZELISK_TMP=$(mktemp) \
     && curl -fsSL -o $BAZELISK_TMP "$BAZELISK_URL" \
     && (echo "$BAZELISK_MD5SUM  $BAZELISK_TMP" | md5sum --quiet -c -) \
