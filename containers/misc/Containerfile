@@ -16,6 +16,12 @@ WORKDIR /
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
 
+# Install any extra packages
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libqt5webengine5 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Variables for Bazel
 ARG BAZEL_VER="9.2.0"
 ARG BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VER/bazel-$BAZEL_VER-linux-x86_64"
