@@ -141,6 +141,21 @@ RUN TWEAG_CH_TMP=$(mktemp) \
 # This is necessary for the Bazel wrapper to find it
 ENV CREDENTIAL_HELPER_BIN=$TWEAG_CH_FILE
 
+# Variables for SOPS
+ARG SOPS_VER="3.13.3"
+ARG SOPS_URL="https://github.com/getsops/sops/releases/download/v$SOPS_VER/sops-v$SOPS_VER.linux.amd64"
+ARG SOPS_MD5SUM="bcbc0110b35eb9a84eed795e693820bb"
+ARG SOPS_FILE="/usr/local/bin/sops"
+ARG SOPS_COMP_FILE="/etc/bash_completion.d/sops"
+
+# Install SOPS and enable Bash completion
+RUN SOPS_TMP=$(mktemp) \
+    && curl -fsSL -o $SOPS_TMP "$SOPS_URL" \
+    && (echo "$SOPS_MD5SUM  $SOPS_TMP" | md5sum --quiet -c -) \
+    && install -m 755 $SOPS_TMP $SOPS_FILE \
+    && $SOPS_FILE completion bash > $SOPS_COMP_FILE \
+    && rm -f $SOPS_TMP
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
