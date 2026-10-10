@@ -101,6 +101,30 @@ RUN JFROG_TMP=$(mktemp) \
 RUN ln -s $JFROG_FILE $DEV_USER_HOME/.local/bin/jf \
     && chown -h $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.local/bin/jf
 
+# Variables for gcloud CLI
+ARG GCLOUD_VER="588.0.0"
+ARG GCLOUD_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-$GCLOUD_VER-linux-x86_64.tar.gz"
+ARG GCLOUD_MD5SUM="f30011b5d4fbcd4e9c33cc6b453d7d56"
+ARG GCLOUD_DIR="/opt/google-cloud-sdk"
+ARG GCLOUD_FILE="/usr/local/bin/gcloud"
+ARG GSUTIL_FILE="/usr/local/bin/gsutil"
+ARG GCLOUD_COMP_FILE="/etc/bash_completion.d/gcloud"
+
+# Install gcloud CLI (with gsutil) and enable Bash completion
+RUN GCLOUD_TAR_TMP=$(mktemp) \
+    && GCLOUD_CONFIG_TMP=$(mktemp -d) \
+    && curl -fsSL -o $GCLOUD_TAR_TMP "$GCLOUD_URL" \
+    && (echo "$GCLOUD_MD5SUM  $GCLOUD_TAR_TMP" | md5sum --quiet -c -) \
+    && mkdir -p $GCLOUD_DIR \
+    && tar -xzf $GCLOUD_TAR_TMP -C $GCLOUD_DIR --strip-components=1 \
+    && ln -s $GCLOUD_DIR/bin/gcloud $GCLOUD_FILE \
+    && ln -s $GCLOUD_DIR/bin/gsutil $GSUTIL_FILE \
+    && export CLOUDSDK_CONFIG=$GCLOUD_CONFIG_TMP \
+    && $GCLOUD_FILE config set --installation component_manager/disable_update_check true \
+    && $GCLOUD_FILE config set --installation core/disable_usage_reporting true \
+    && install -m 644 $GCLOUD_DIR/completion.bash.inc $GCLOUD_COMP_FILE \
+    && rm -rf $GCLOUD_TAR_TMP $GCLOUD_CONFIG_TMP
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
