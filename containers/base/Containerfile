@@ -38,6 +38,7 @@ RUN apt-get update \
         file \
         gnupg \
         gzip \
+        jq \
         less \
         locales \
         lz4 \
