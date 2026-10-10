@@ -81,6 +81,26 @@ RUN PREK_TAR_TMP=$(mktemp) \
     && $PREK_FILE util generate-shell-completion bash > $PREK_COMP_FILE \
     && rm -f $PREK_TAR_TMP $PREK_TMP
 
+# Variables for JFrog CLI
+ARG JFROG_VER="2.126.0"
+ARG JFROG_URL="https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/$JFROG_VER/jfrog-cli-linux-amd64/jf"
+ARG JFROG_MD5SUM="cbecb8ffaeea675e063d2b6dffcd96ee"
+ARG JFROG_FILE="/usr/local/bin/jf"
+ARG JFROG_COMP_FILE="/etc/bash_completion.d/jf"
+
+# Install JFrog CLI and enable Bash completion
+RUN JFROG_TMP=$(mktemp) \
+    && JFROG_HOME_TMP=$(mktemp -d) \
+    && curl -fsSL -o $JFROG_TMP "$JFROG_URL" \
+    && (echo "$JFROG_MD5SUM  $JFROG_TMP" | md5sum --quiet -c -) \
+    && install -m 755 $JFROG_TMP $JFROG_FILE \
+    && JFROG_CLI_HOME_DIR=$JFROG_HOME_TMP $JFROG_FILE completion bash > $JFROG_COMP_FILE \
+    && rm -rf $JFROG_TMP $JFROG_HOME_TMP
+
+# Create a link to put this in the "expected" place
+RUN ln -s $JFROG_FILE $DEV_USER_HOME/.local/bin/jf \
+    && chown -h $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.local/bin/jf
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME

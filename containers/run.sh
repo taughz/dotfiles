@@ -164,6 +164,7 @@ ensure_exists d 700 $HOME/.cache/bazel-taughz
 ensure_exists d 700 $HOME/.cache/bazel-shared
 ensure_exists d 700 $HOME/.cache/bazel-shared/disk
 ensure_exists d 700 $HOME/.cache/bazel-shared/repo
+ensure_exists d 700 $HOME/.jfrog
 ensure_exists d 700 $HOME/.taughz
 ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
@@ -235,6 +236,10 @@ BAZEL_FLAGS=(
     --mount "type=bind,src=$HOME/.cache/bazel-shared,dst=$CHOME/.cache/bazel-shared"
 )
 
+JFROG_FLAGS=(
+    --mount "type=bind,src=$HOME/.jfrog,dst=$CHOME/.jfrog"
+)
+
 SHELL_FLAGS=(
     --mount "type=bind,src=$HOME/.taughz/shell,dst=$SHELL_CONFIG_DIR"
 )
@@ -260,7 +265,7 @@ fi
 echo_cmd docker run --rm --tty --interactive --privileged --network=host \
     --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
     "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
-    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${BAZEL_FLAGS[@]}" \
+    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
     "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 
