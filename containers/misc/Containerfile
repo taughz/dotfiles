@@ -125,6 +125,22 @@ RUN GCLOUD_TAR_TMP=$(mktemp) \
     && install -m 644 $GCLOUD_DIR/completion.bash.inc $GCLOUD_COMP_FILE \
     && rm -rf $GCLOUD_TAR_TMP $GCLOUD_CONFIG_TMP
 
+# Variables for tweag-credential-helper
+ARG TWEAG_CH_VER="0.0.9"
+ARG TWEAG_CH_URL="https://github.com/tweag/credential-helper/releases/download/v$TWEAG_CH_VER/credential_helper_linux_amd64"
+ARG TWEAG_CH_MD5SUM="23d3e81377d036adb1f5b8eb731ec8c8"
+ARG TWEAG_CH_FILE="/usr/local/bin/tweag-credential-helper"
+
+# Install tweag-credential-helper
+RUN TWEAG_CH_TMP=$(mktemp) \
+    && curl -fsSL -o $TWEAG_CH_TMP "$TWEAG_CH_URL" \
+    && (echo "$TWEAG_CH_MD5SUM  $TWEAG_CH_TMP" | md5sum --quiet -c -) \
+    && install -m 755 $TWEAG_CH_TMP $TWEAG_CH_FILE \
+    && rm -f $TWEAG_CH_TMP
+
+# This is necessary for the Bazel wrapper to find it
+ENV CREDENTIAL_HELPER_BIN=$TWEAG_CH_FILE
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
