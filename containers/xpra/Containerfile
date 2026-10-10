@@ -26,10 +26,21 @@ ARG XPRA_KEY_FILE="/usr/share/keyrings/xpra.asc"
 RUN curl -fL -o $XPRA_KEY_FILE "$XPRA_KEY_URL" \
     && curl -fL -o $XPRA_SOURCES_FILE "$XPRA_SOURCES_URL"
 
-# Install Xpra
+# Install Xpra and some recommended packages
 RUN apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
+        dbus-x11 \
+        python3-cryptography \
+        python3-gi-cairo \
+        python3-paramiko \
+        python3-setproctitle \
+        python3-xdg \
         xpra \
+        xpra-audio \
+        xpra-audio-server \
+        xpra-codecs-extras \
+        xpra-x11 \
+        xterm \
     && rm -rf /var/lib/apt/lists/*
 
 # Switch to non-root user
