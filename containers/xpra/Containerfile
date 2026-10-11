@@ -43,6 +43,11 @@ RUN apt-get update \
         xterm \
     && rm -rf /var/lib/apt/lists/*
 
+# Use the container's session bus (see base layer) instead of starting another
+ARG XPRA_SERVER_CONF="/etc/xpra/conf.d/60_server.conf"
+RUN grep -q '^dbus-launch = ' $XPRA_SERVER_CONF \
+    && sed -i 's/^dbus-launch = .*/dbus-launch = no/' $XPRA_SERVER_CONF
+
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME

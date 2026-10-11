@@ -33,6 +33,7 @@ RUN apt-get update \
         bzip2 \
         ca-certificates \
         curl \
+        dbus \
         direnv \
         faketime \
         file \
@@ -202,6 +203,7 @@ COPY --chown=root entrypoint.sh /entrypoint.sh
 COPY --chown=root entrypoint.d/fix_user.sh $ENTRYPOINT_DIR/10_fix_user.sh
 COPY --chown=root entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
 COPY --chown=root entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
+COPY --chown=root entrypoint.d/dbus_init.sh $ENTRYPOINT_DIR/15_dbus_init.sh
 
 # Copy the GPG setup, etc
 COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash
