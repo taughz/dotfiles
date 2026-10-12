@@ -19,6 +19,8 @@ ARG TERM="dumb"
 # Install any extra packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        dbus-x11 \
+        gnome-keyring \
         libqt5webengine5 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -155,6 +157,27 @@ RUN SOPS_TMP=$(mktemp) \
     && install -m 755 $SOPS_TMP $SOPS_FILE \
     && $SOPS_FILE completion bash > $SOPS_COMP_FILE \
     && rm -f $SOPS_TMP
+
+# Variables for Atlassian CLI
+ARG ACLI_VER="1.3.36"           # Latest version with Bash completion
+ARG ACLI_URL="https://acli.atlassian.com/linux/$ACLI_VER-stable/acli_$ACLI_VER-stable_linux_amd64.tar.gz"
+ARG ACLI_MD5SUM="e4cfcfdd4711f7cd37138667d505d8d2"
+ARG ACLI_FILE="/usr/local/bin/acli"
+ARG ACLI_COMP_FILE="/etc/bash_completion.d/acli"
+
+# Install Atlassian CLI and enable Bash completion
+RUN ACLI_TAR_TMP=$(mktemp) \
+    && ACLI_TMP=$(mktemp) \
+    && ACLI_HOME_TMP=$(mktemp -d) \
+    && curl -fsSL -o $ACLI_TAR_TMP "$ACLI_URL" \
+    && (echo "$ACLI_MD5SUM  $ACLI_TAR_TMP" | md5sum --quiet -c -) \
+    && tar -xzOf $ACLI_TAR_TMP --wildcards '*/acli' > $ACLI_TMP \
+    && install -m 755 $ACLI_TMP $ACLI_FILE \
+    && HOME=$ACLI_HOME_TMP $ACLI_FILE completion bash > $ACLI_COMP_FILE \
+    && rm -rf $ACLI_TAR_TMP $ACLI_TMP $ACLI_HOME_TMP
+
+# Copy entry point for ACLI authentication in a container-local keyring
+COPY --chown=root entrypoint.d/acli_init.sh $ENTRYPOINT_DIR/40_acli_init.sh
 
 # Switch to non-root user
 USER $DEV_USER
