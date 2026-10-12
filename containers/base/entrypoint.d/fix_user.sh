@@ -75,7 +75,14 @@ if [ $DEV_USER_UID -ne $OLD_DEV_USER_UID -o $DEV_USER_GID -ne $OLD_DEV_USER_GID 
         [ ! -d "/run/user/" ] && mkdir -m 755 /run/user
         [ ! -d "/run/user/$DEV_USER_UID" ] && mkdir -m 700 /run/user/$DEV_USER_UID
     fi
-    chown -R $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME
+    prune_args=()
+    for mnt in $(findmnt -rno TARGET | grep "^$DEV_USER_HOME/" || true); do
+        prune_args+=(-path "$mnt" -prune -o)
+    done
+    # Fix ownership of the home directory, excluding mounted directories. The
+    # home directory is not very large by default, but mounted directories can
+    # be quite large, and usual have the right owner already anyway.
+    find $DEV_USER_HOME "${prune_args[@]}" ! -type l -exec chown $DEV_USER_UID:$DEV_USER_GID {} +
     chown $DEV_USER_UID:$DEV_USER_GID /run/user/$DEV_USER_UID
     for vol in $(find $VOLS_DIR -mindepth 1 -maxdepth 1 -type d); do
         if [ $(stat -c '%u:%g' $vol) = "$DEV_USER_UID:$DEV_USER_GID" ]; then
