@@ -25,3 +25,19 @@ To run the combined container, use the following command:
 ```sh
 ./run.sh
 ```
+
+## GPG
+
+To avoid exposing private keys to the container, the container mounts the
+restricted extra socket, and uses that to connect to the host's GPG agent. This
+socket can be used to sign and decrypt, but it cannot export, import, or delete
+keys. The container is configured with `no-autostart`, so it doesn't start its
+own agent. This all relies on the host being configured properly:
+
+```sh
+mkdir -p ~/.config/systemd/user/gpg-agent-extra.socket.d
+cp -t ~/.config/systemd/user/gpg-agent-extra.socket.d gpg/gnupg-extra.conf
+systemctl --user daemon-reload
+systemctl --user stop gpg-agent.service
+systemctl --user restart gpg-agent-extra.socket
+```

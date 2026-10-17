@@ -152,6 +152,17 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
 RUN mkdir -m 755 $DEV_USER_HOME/.config \
     && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config
 
+# Make GnuPG directory, and never start a local agent. The container uses the
+# host's agent through a forwarded socket.
+RUN mkdir -m 700 $DEV_USER_HOME/.gnupg \
+    && echo "no-autostart" > $DEV_USER_HOME/.gnupg/gpg.conf \
+    && chown -R $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.gnupg
+
+# Make directory for read-only host files, so file mounts don't create it as root
+RUN mkdir -m 755 $DEV_USER_HOME/.host \
+    && mkdir -m 700 $DEV_USER_HOME/.host/gnupg \
+    && chown -R $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.host
+
 # Make cache directory, so bind mounts don't create it as root
 RUN mkdir -m 755 $DEV_USER_HOME/.cache \
     && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.cache
@@ -204,6 +215,7 @@ COPY --chown=root entrypoint.d/fix_user.sh $ENTRYPOINT_DIR/10_fix_user.sh
 COPY --chown=root entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
 COPY --chown=root entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 COPY --chown=root entrypoint.d/dbus_init.sh $ENTRYPOINT_DIR/15_dbus_init.sh
+COPY --chown=root entrypoint.d/gpg_init.sh $ENTRYPOINT_DIR/16_gpg_init.sh
 
 # Copy the GPG setup, etc
 COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash

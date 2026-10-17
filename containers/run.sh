@@ -14,6 +14,10 @@ DEFAULT_TARGET_TAG="main"
 # The default projects directory
 DEFAULT_PROJECTS_DIR="$HOME/Projects"
 
+# The host GnuPG directory and the directory of the restricted agent socket
+HOST_GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
+HOST_GNUPG_EXTRA_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/gnupg-extra"
+
 # Usage: show_usage
 #
 # Prints help message for this script.
@@ -65,6 +69,36 @@ function ensure_exists() {
 function echo_cmd() {
     printf '%s\n' "Running command: $(IFS=' '; echo "$*")" >&2
     "$@"
+}
+
+# Usage: check_host_gpg
+#
+# Checks that the host can forward GPG into the container. The container never
+# gets private keys, only the public keyring and the restricted agent socket.
+function check_host_gpg() {
+    local socket="$HOST_GNUPG_EXTRA_DIR/S.gpg-agent"
+    if [ ! -S "$socket" ]; then
+        echo "ERROR: No restricted GPG agent socket: $socket" >&2
+        echo "ERROR: Did you install the extra socket config file?" >&2
+        return 1
+    fi
+    if ! gpg-connect-agent -S "$socket" NOP /bye 2> /dev/null | grep -q '^OK'; then
+        echo "ERROR: The restricted GPG agent socket is not responding: $socket" >&2
+        return 1
+    fi
+    # Creates the public keyring and trust database if they don't exist
+    if ! gpg --batch --no-auto-check-trustdb --list-keys &> /dev/null; then
+        echo "ERROR: Failed to read the GPG public keyring in: $HOST_GNUPG_DIR" >&2
+        return 1
+    fi
+    # Check for specific GPG files we will mount
+    local file
+    for file in pubring.kbx trustdb.gpg; do
+        if [ ! -f "$HOST_GNUPG_DIR/$file" ]; then
+            echo "ERROR: No GPG file: $HOST_GNUPG_DIR/$file" >&2
+            return 1
+        fi
+    done
 }
 
 # Default options
@@ -126,6 +160,12 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# Check for GnuPG
+if ! command -v gpg &> /dev/null || ! command -v gpg-connect-agent &> /dev/null; then
+    echo "ERROR: GnuPG is required!" >&2
+    exit 1
+fi
+
 # Find a GitHub token, falling back to GITHUB_TOKEN, then the GitHub CLI.
 # It must be exported so it can be passed to the container by name.
 export GH_TOKEN
@@ -140,6 +180,11 @@ if [ -z "${GH_TOKEN:-}" ]; then
     fi
 fi
 
+# Check the host, GPG problems are fatal
+if ! check_host_gpg; then
+    exit 1
+fi
+
 # The variables from inside the container
 IMAGE_ENV=$(docker run --rm $TARGET_IMAGE printenv)
 DEV_USER=$(get_from_env "$IMAGE_ENV" "DEV_USER")
@@ -152,7 +197,6 @@ DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 # Ensure the files and directories we expect exist
 ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
-ensure_exists d 700 $HOME/.gnupg
 ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.config/gh
 ensure_exists d 700 $HOME/.xpra
@@ -204,9 +248,12 @@ SSH_FLAGS=(
     --mount "type=bind,src=$HOME/.ssh,dst=$CHOME/.ssh"
 )
 
+# Only the restricted agent socket and the public keyring, never private keys.
+# The container copies the public keyring into place, so its own is writable.
 GPG_FLAGS=(
-    --mount "type=bind,src=$HOME/.gnupg,dst=$CHOME/.gnupg"
-    --mount "type=bind,src=/run/user/$user_uid/gnupg,dst=/run/user/$user_uid/gnupg,readonly"
+    --mount "type=bind,src=$HOST_GNUPG_EXTRA_DIR,dst=/run/user/$user_uid/gnupg,readonly"
+    --mount "type=bind,src=$HOST_GNUPG_DIR/pubring.kbx,dst=$CHOME/.host/gnupg/pubring.kbx,readonly"
+    --mount "type=bind,src=$HOST_GNUPG_DIR/trustdb.gpg,dst=$CHOME/.host/gnupg/trustdb.gpg,readonly"
 )
 
 GIT_FLAGS=(
