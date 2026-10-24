@@ -41,3 +41,14 @@ systemctl --user daemon-reload
 systemctl --user stop gpg-agent.service
 systemctl --user restart gpg-agent-extra.socket
 ```
+
+## Password Store
+
+To avoid specifying secrets using environment variables, we use `pass` and a
+bind mount of the password store. Actually, a `container` subdirectory within
+the password store. This mount is read-only, so the container cannot add entries
+or corrupt the password store. The password store must be initialized:
+
+```sh
+pass init YOUR_GPG_KEY_ID
+```

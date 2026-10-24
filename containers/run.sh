@@ -18,6 +18,10 @@ DEFAULT_PROJECTS_DIR="$HOME/Projects"
 HOST_GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
 HOST_GNUPG_EXTRA_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/gnupg-extra"
 
+# The host password store, but the container only gets the container subtree
+HOST_PASS_DIR=${PASSWORD_STORE_DIR:-$HOME/.password-store}
+HOST_PASS_CONTAINER_DIR="$HOST_PASS_DIR/container"
+
 # Usage: show_usage
 #
 # Prints help message for this script.
@@ -186,7 +190,7 @@ if ! check_host_gpg; then
 fi
 
 # The variables from inside the container
-IMAGE_ENV=$(docker run --rm $TARGET_IMAGE printenv)
+IMAGE_ENV=$(docker run --rm --entrypoint printenv $TARGET_IMAGE)
 DEV_USER=$(get_from_env "$IMAGE_ENV" "DEV_USER")
 DEV_USER_UID=$(get_from_env "$IMAGE_ENV" "DEV_USER_UID")
 DEV_USER_HOME=$(get_from_env "$IMAGE_ENV" "DEV_USER_HOME")
@@ -197,6 +201,8 @@ DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 # Ensure the files and directories we expect exist
 ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
+ensure_exists d 700 $HOST_PASS_DIR
+ensure_exists d 700 $HOST_PASS_CONTAINER_DIR
 ensure_exists f 644 $HOME/.gitconfig
 ensure_exists d 700 $HOME/.config/gh
 ensure_exists d 700 $HOME/.xpra
@@ -248,12 +254,17 @@ SSH_FLAGS=(
     --mount "type=bind,src=$HOME/.ssh,dst=$CHOME/.ssh"
 )
 
-# Only the restricted agent socket and the public keyring, never private keys.
-# The container copies the public keyring into place, so its own is writable.
 GPG_FLAGS=(
+    # Only the restricted agent socket and the public keyring, never private keys.
+    # The container copies the public keyring into place, so its own is writable.
     --mount "type=bind,src=$HOST_GNUPG_EXTRA_DIR,dst=/run/user/$user_uid/gnupg,readonly"
     --mount "type=bind,src=$HOST_GNUPG_DIR/pubring.kbx,dst=$CHOME/.host/gnupg/pubring.kbx,readonly"
     --mount "type=bind,src=$HOST_GNUPG_DIR/trustdb.gpg,dst=$CHOME/.host/gnupg/trustdb.gpg,readonly"
+)
+
+PASS_FLAGS=(
+    # Only the container subtree, as the container's whole password store
+    --mount "type=bind,src=$HOST_PASS_CONTAINER_DIR,dst=$CHOME/.password-store,readonly"
 )
 
 GIT_FLAGS=(
@@ -325,7 +336,7 @@ fi
 
 echo_cmd docker run --rm --tty --interactive --privileged --network=host \
     --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
-    "${GPG_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
+    "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
     "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
     "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" \
