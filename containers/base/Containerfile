@@ -34,9 +34,11 @@ RUN apt-get update \
         ca-certificates \
         curl \
         dbus \
+        dbus-x11 \
         direnv \
         faketime \
         file \
+        gnome-keyring \
         gnupg \
         gzip \
         jq \
@@ -217,6 +219,7 @@ COPY --chown=root entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
 COPY --chown=root entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 COPY --chown=root entrypoint.d/dbus_init.sh $ENTRYPOINT_DIR/15_dbus_init.sh
 COPY --chown=root entrypoint.d/gpg_init.sh $ENTRYPOINT_DIR/16_gpg_init.sh
+COPY --chown=root entrypoint.d/keyring_init.sh $ENTRYPOINT_DIR/20_keyring_init.sh
 
 # Copy the GPG setup, etc
 COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash

@@ -20,7 +20,6 @@ ARG TERM="dumb"
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         dbus-x11 \
-        gnome-keyring \
         libqt5webengine5 \
     && rm -rf /var/lib/apt/lists/*
 

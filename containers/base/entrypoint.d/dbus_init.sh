@@ -8,11 +8,11 @@ set -o pipefail
 IFS=$'\n\t'
 
 # Start a single D-Bus session bus for the container, so that everything in the
-# container (shells, Xpra, etc) can share it. The bus uses the standard socket
-# path, `$XDG_RUNTIME_DIR/bus`. Root has no runtime directory, so root gets no
-# bus. If an address was passed into the container, just use that instead.
+# container can share it. Root doesn't get a bus.
 
-if [ $(id -u) -eq 0 -o -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+unset DBUS_SESSION_BUS_ADDRESS
+
+if [ $(id -u) -eq 0 ]; then
     exec "$@"
 fi
 
