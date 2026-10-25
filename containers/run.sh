@@ -27,13 +27,15 @@ HOST_PASS_CONTAINER_DIR="$HOST_PASS_DIR/container"
 # Prints help message for this script.
 function show_usage() {
     cat <<EOF >&2
-Usage: $(basename "$0") [-t | --tag TAG] [-p | --projects [DIR]] [-z | --tz] [-h | --help]
+Usage: $(basename "$0") [-t | --tag TAG] [-p | --projects [DIR]] [-z | --tz]
+            [-P | --privileged] [-h | --help]
 
 Run the Taughz development container.
 
     -t | --tag TAG          Run the container with the given tag
     -p | --projects [DIR]   Bind mount projects directory
     -z | --tz               Use the host timezone
+    -P | --privileged       Run the container in privileged mode
     -h | --help             Display this help message
 EOF
 }
@@ -110,6 +112,7 @@ target_tag=$DEFAULT_TARGET_TAG
 mount_projects=0
 projects_dir=$DEFAULT_PROJECTS_DIR
 use_tz=0
+privileged=0
 
 # Convert long options to short options, preserving order
 for arg in "$@"; do
@@ -117,6 +120,7 @@ for arg in "$@"; do
         "--tag") set -- "$@" "-t";;
         "--projects") set -- "$@" "-p";;
         "--tz") set -- "$@" "-z";;
+        "--privileged") set -- "$@" "-P";;
         "--help") set -- "$@" "-h";;
         *) set -- "$@" "$arg";;
     esac
@@ -124,7 +128,7 @@ for arg in "$@"; do
 done
 
 # Parse short options using getopts
-while getopts "t:pzh" arg &> /dev/null; do
+while getopts "t:pzPh" arg &> /dev/null; do
     case "$arg" in
         "t") target_tag=$OPTARG;;
         "p")
@@ -135,6 +139,7 @@ while getopts "t:pzh" arg &> /dev/null; do
                 OPTIND=$((OPTIND + 1))
             fi;;
         "z") use_tz=1;;
+        "P") privileged=1;;
         "h") show_usage; exit 0;;
         "?") show_usage; exit 1;;
     esac
@@ -317,12 +322,28 @@ if [ $use_tz -ne 0 ]; then
     tz_flags+=(--mount "type=bind,src=/etc/localtime,dst=/etc/localtime")
 fi
 
-echo_cmd docker run --rm --tty --interactive --privileged --network=host \
-    --env "TERM=$TERM" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" "${SSH_FLAGS[@]}" \
-    "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" \
-    "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
-    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
-    "${projects_flags[@]}" "${tz_flags[@]}" \
+privileged_flags=()
+if [ $privileged -ne 0 ]; then
+    echo "WARNING: Running a privileged container!" >&2
+    privileged_flags+=(--privileged)
+else
+    privileged_flags+=(--cap-add SYS_PTRACE) # For debugging
+fi
+
+gpu_flags=()
+if [ -d /dev/dri ]; then
+    gpu_flags+=(--device /dev/dri)
+    for gid in $(stat -c '%g' /dev/dri/card* /dev/dri/renderD* 2> /dev/null | sort -u || true); do
+        gpu_flags+=(--group-add "$gid")
+    done
+fi
+
+echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
+    "${privileged_flags[@]}" "${gpu_flags[@]}" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" \
+    "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
+    "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
+    "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" \
+    "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 
 exit 0

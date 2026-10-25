@@ -53,6 +53,19 @@ groupmod --new-name $DEV_USER --gid $DEV_USER_GID --non-unique $OLD_DEV_USER
 usermod --non-unique --login $DEV_USER --uid $DEV_USER_UID --gid $DEV_USER_GID \
     --comment "$DEV_USER_FULLNAME,,," --home $DEV_USER_HOME --shell $DEV_USER_SHELL $OLD_DEV_USER
 
+# Device nodes will have the host GIDs, which may or may not be in the
+# container. Either way, we need to add the user to those groups.
+for dev in /dev/dri/card* /dev/dri/renderD*; do
+    [ -c $dev ] || continue
+    case $(basename $dev) in
+        card*) group=video_;;
+        renderD*) group=render_;;
+    esac
+    getent group $group &> /dev/null \
+        || groupadd --gid $(stat -c '%g' $dev) --non-unique $group
+    usermod --append --groups $group $DEV_USER
+done
+
 # Make the home directory and move files into it. This is can be easy or
 # complicated, depending on if it already exists because of bind mounts. Bind
 # mounted files cannot be moved, so they must be done in the fixed user home
@@ -101,4 +114,4 @@ PATH=$(echo $PATH | sed "s;$OLD_DEV_USER_HOME;$DEV_USER_HOME;g")
 # Switch to the new home directory
 cd $DEV_USER_HOME
 
-exec gosu $DEV_USER_UID:$DEV_USER_GID "$@"
+exec gosu $DEV_USER "$@"

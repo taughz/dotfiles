@@ -59,6 +59,17 @@ RUN apt-get update \
         zip \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Mesa, so OpenGL can use the GPU
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libegl-mesa0 \
+        libegl1 \
+        libgl1 \
+        libgl1-mesa-dri \
+        libglx-mesa0 \
+        mesa-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install tools for network debugging
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
