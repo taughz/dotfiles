@@ -153,7 +153,9 @@ RUN groupadd --gid $DEV_USER_GID $DEV_USER \
 
 # Make config directory, so bind mounts don't create it as root
 RUN mkdir -m 755 $DEV_USER_HOME/.config \
-    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config \
+    && mkdir -m 700 $DEV_USER_HOME/.config/gh \
+    && chown $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.config/gh
 
 # Make GnuPG directory, and never start a local agent. The container uses the
 # host's agent through a forwarded socket.
@@ -220,6 +222,7 @@ COPY --chown=root entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 COPY --chown=root entrypoint.d/dbus_init.sh $ENTRYPOINT_DIR/15_dbus_init.sh
 COPY --chown=root entrypoint.d/gpg_init.sh $ENTRYPOINT_DIR/16_gpg_init.sh
 COPY --chown=root entrypoint.d/keyring_init.sh $ENTRYPOINT_DIR/20_keyring_init.sh
+COPY --chown=root entrypoint.d/gh_init.sh $ENTRYPOINT_DIR/21_gh_init.sh
 
 # Copy the GPG setup, etc
 COPY --chown=$DEV_USER bashrc.d/gpg_setup.bash $DEV_USER_HOME/.bashrc.d/10_gpg_setup.bash
