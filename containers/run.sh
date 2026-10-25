@@ -292,10 +292,6 @@ GCLOUD_FLAGS=(
 )
 
 ACLI_FLAGS=(
-    # Names only so the values are not visible
-    --env ACLI_SITE
-    --env ACLI_EMAIL
-    --env ATLASSIAN_API_KEY
     --mount "type=bind,src=$HOME/.config/acli,dst=$CHOME/.config/acli"
 )
 
