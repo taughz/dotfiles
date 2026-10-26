@@ -16,6 +16,25 @@ WORKDIR /
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG TERM="dumb"
 
+# Install common development tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        autoconf \
+        autoconf-archive \
+        automake \
+        autopoint \
+        bison \
+        ccache \
+        cmake \
+        flex \
+        gettext \
+        libtool \
+        make \
+        ninja-build \
+        pkg-config \
+        texinfo \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install GCC 12, plus GDB and some other debugging tools. Also install the JIT
 # library, just in case we need it for Emacs.
 RUN apt-get update \
