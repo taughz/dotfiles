@@ -338,6 +338,16 @@ if [ -d /dev/dri ]; then
     done
 fi
 
+# If necessary, use the NVIDIA Container Toolkit to injects the driver into the container
+if [ -e /proc/driver/nvidia/version ]; then
+    if command -v nvidia-container-runtime-hook &> /dev/null; then
+        gpu_flags+=(--gpus all)
+        gpu_flags+=(--env "NVIDIA_DRIVER_CAPABILITIES=all")
+    else
+        echo "WARNING: NVIDIA GPU detected, but the NVIDIA Container Toolkit is missing!" >&2
+    fi
+fi
+
 echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${privileged_flags[@]}" "${gpu_flags[@]}" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" \
     "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
