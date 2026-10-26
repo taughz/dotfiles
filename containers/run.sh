@@ -73,7 +73,7 @@ function ensure_exists() {
 #
 # Prints the command, then runs it.
 function echo_cmd() {
-    printf '%s\n' "Running command: $(IFS=' '; echo "$*")" >&2
+    printf '%s\n' "Running command:$(printf ' %q' "$@")" >&2
     "$@"
 }
 
