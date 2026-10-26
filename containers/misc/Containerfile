@@ -24,9 +24,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Variables for Bazel
-ARG BAZEL_VER="9.2.0"
+ARG BAZEL_VER="9.3.1"
 ARG BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VER/bazel-$BAZEL_VER-linux-x86_64"
-ARG BAZEL_MD5SUM="4339221b8a9d6235353f218a4dc83add"
+ARG BAZEL_MD5SUM="1c193b2bb4120af102ff679e3e128e79"
 ARG BAZEL_FILE="/usr/local/bin/bazel"
 ARG BAZEL_COMP_HEAD_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZEL_VER/scripts/bazel-complete-header.bash"
 ARG BAZEL_COMP_TEMP_URL="https://raw.githubusercontent.com/bazelbuild/bazel/$BAZEL_VER/scripts/bazel-complete-template.bash"
