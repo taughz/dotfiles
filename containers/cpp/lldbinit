@@ -1,0 +1,2 @@
+# ASLR must remain on due to the seccomp profile
+settings set target.disable-aslr false
