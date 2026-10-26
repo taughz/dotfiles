@@ -19,7 +19,7 @@ ARG TERM="dumb"
 # Don't cache while building the image
 ARG PIP_NO_CACHE_DIR=1
 
-# Don't complain about verison
+# Don't complain about version
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install basic Python packages

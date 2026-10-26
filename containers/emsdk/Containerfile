@@ -36,7 +36,7 @@ RUN $EMSDK_DIR/emsdk install $EMSDK_VER $EMSDK_NODE_TOOL \
     && $EMSDK_DIR/emsdk activate $EMSDK_VER $EMSDK_NODE_TOOL \
     && chown -R 0:0 $EMSDK_DIR
 
-# Rather than sourcing the emsdk_env.sh script, which would not take affect
+# Rather than sourcing the emsdk_env.sh script, which would not take effect
 # until starting the container, we will set up the same environment variables
 # manually so that they are available right away. Unfortunately this might need
 # to be updated in the future to keep it in sync with the script.

@@ -159,7 +159,7 @@ TARGET_IMAGE="$IMAGE_REPO:$target_tag"
 
 # Check projects directory
 if [ $mount_projects -ne 0 -a ! -d "$projects_dir" ]; then
-    echo "ERROR: Projecs directory must exist: $projects_dir" >&2
+    echo "ERROR: Projects directory must exist: $projects_dir" >&2
     exit 1
 fi
 
