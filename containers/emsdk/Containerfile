@@ -5,6 +5,9 @@
 ARG BASE_IMAGE="scratch"
 FROM $BASE_IMAGE
 
+# Set shell to Bash with better error flags
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
 # Ensure root user
 USER root
 WORKDIR /
