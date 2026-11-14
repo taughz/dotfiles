@@ -41,6 +41,7 @@ RUN apt-get update \
         gnome-keyring \
         gnupg \
         gzip \
+        htop \
         jq \
         less \
         locales \
@@ -49,12 +50,16 @@ RUN apt-get update \
         lzop \
         nano \
         openssh-client \
-        p7zip \
+        p7zip-full \
         pass \
         patch \
+        rsync \
         tar \
+        tmux \
         tzdata \
         unzip \
+        usbutils \
+        xclip \
         xz-utils \
         zip \
     && rm -rf /var/lib/apt/lists/*
@@ -79,6 +84,7 @@ RUN apt-get update \
         iputils-ping \
         iputils-tracepath \
         dnsutils \
+        net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up language
@@ -121,17 +127,22 @@ RUN curl -fL -o $GH_KEY_FILE "$GH_KEY_URL" \
 # Install fundamental dev tools
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
         cmake \
         g++ \
         gcc \
         gh \
         git \
+        git-lfs \
         make \
         python-is-python3 \
         python3 \
         python3-pip \
         shellcheck \
     && rm -rf /var/lib/apt/lists/*
+
+# Set up Git LFS for the system
+RUN git lfs install --system --skip-repo
 
 # Non-root user variables
 ARG DEV_USER="dev"
