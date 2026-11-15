@@ -22,6 +22,9 @@ ARG PIP_NO_CACHE_DIR=1
 # Don't complain about version
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# Uv is unable to hard link across mounts
+ENV UV_LINK_MODE="copy"
+
 # Install basic Python packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

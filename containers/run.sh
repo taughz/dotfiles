@@ -236,6 +236,8 @@ ensure_exists d 700 $HOME/.cache/bazel-taughz
 ensure_exists d 700 $HOME/.cache/bazel-shared
 ensure_exists d 700 $HOME/.cache/bazel-shared/disk
 ensure_exists d 700 $HOME/.cache/bazel-shared/repo
+ensure_exists d 700 $HOME/.cache/pip
+ensure_exists d 700 $HOME/.cache/uv
 ensure_exists d 700 $HOME/.jfrog
 ensure_exists d 700 $HOME/.config/gcloud
 ensure_exists d 700 $HOME/.config/acli
@@ -345,6 +347,14 @@ BAZEL_FLAGS=(
     --mount "type=bind,src=$HOME/.cache/bazel-shared,dst=$CHOME/.cache/bazel-shared"
 )
 
+PIP_FLAGS=(
+    --mount "type=bind,src=$HOME/.cache/pip,dst=$CHOME/.cache/pip"
+)
+
+UV_FLAGS=(
+    --mount "type=bind,src=$HOME/.cache/uv,dst=$CHOME/.cache/uv"
+)
+
 JFROG_FLAGS=(
     --mount "type=bind,src=$HOME/.jfrog,dst=$CHOME/.jfrog"
 )
@@ -409,8 +419,9 @@ echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${privileged_flags[@]}" "${gpu_flags[@]}" "${fixed_user_flags[@]}" "${display_flags[@]}" \
     "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
-    "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" \
-    "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
+    "${BAZEL_FLAGS[@]}" "${PIP_FLAGS[@]}" "${UV_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
+    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
+    "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 
 exit 0
