@@ -219,6 +219,7 @@ DEV_USER_HOME=$(get_from_env "$IMAGE_ENV" "DEV_USER_HOME")
 SHELL_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "SHELL_CONFIG_DIR")
 EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
 DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
+PREK_CACHE_DIR=$(get_from_env "$IMAGE_ENV" "PREK_CACHE_DIR" || true)
 
 # Ensure the files and directories we expect exist
 ensure_exists d 700 $HOME/.ssh
@@ -245,6 +246,7 @@ ensure_exists d 700 $HOME/.taughz
 ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
 ensure_exists d 700 $HOME/.taughz/doom.d
+ensure_exists d 700 $HOME/.taughz/prek
 ensure_exists d 700 $HOME/.taughz/xauth
 
 # Get the user data ready
@@ -377,6 +379,11 @@ if [ -n "$EMACS_CONFIG_DIR" -a -n "$DOOM_CONFIG_DIR" ]; then
     emacs_flags+=(--mount "type=bind,src=$HOME/.taughz/doom.d,dst=$DOOM_CONFIG_DIR")
 fi
 
+prek_flags=()
+if [ -n "$PREK_CACHE_DIR" ]; then
+    prek_flags+=(--mount "type=bind,src=$HOME/.taughz/prek,dst=$PREK_CACHE_DIR")
+fi
+
 projects_flags=()
 if [ $mount_projects -ne 0 ]; then
     projects_basename=$(basename "$projects_dir")
@@ -421,7 +428,7 @@ echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
     "${BAZEL_FLAGS[@]}" "${PIP_FLAGS[@]}" "${UV_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
     "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
-    "${projects_flags[@]}" "${tz_flags[@]}" \
+    "${prek_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 
 exit 0

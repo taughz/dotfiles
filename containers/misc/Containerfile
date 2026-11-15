@@ -82,6 +82,15 @@ RUN PREK_TAR_TMP=$(mktemp) \
     && $PREK_FILE util generate-shell-completion bash > $PREK_COMP_FILE \
     && rm -f $PREK_TAR_TMP $PREK_TMP
 
+# The prek environments cannot be shared with the host
+ENV PREK_CACHE_DIR="$VOLS_DIR/prek"
+RUN mkdir -m 755 $PREK_CACHE_DIR \
+    && chown $DEV_USER_UID:$DEV_USER_GID $PREK_CACHE_DIR
+
+# Create a link to put this in the "expected" place
+RUN ln -s $PREK_CACHE_DIR $DEV_USER_HOME/.cache/prek \
+    && chown -h $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.cache/prek
+
 # Variables for JFrog CLI
 ARG JFROG_VER="2.126.0"
 ARG JFROG_URL="https://releases.jfrog.io/artifactory/jfrog-cli/v2-jf/$JFROG_VER/jfrog-cli-linux-amd64/jf"
