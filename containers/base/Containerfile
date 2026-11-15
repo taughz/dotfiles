@@ -18,6 +18,9 @@ ARG TERM="dumb"
 # Prevent DBus warning message
 ENV NO_AT_BRIDGE=1
 
+# The container has its own IPC namespace
+ENV QT_X11_NO_MITSHM=1
+
 # Install essential utilities
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -206,6 +209,9 @@ RUN mkdir -m 755 /run/user \
     && mkdir -m 700 /run/user/$DEV_USER_UID \
     && chown $DEV_USER_UID:$DEV_USER_GID /run/user/$DEV_USER_UID
 
+# Make the X11 socket directory, so socket mounts don't create it as root
+RUN mkdir -m 1777 /tmp/.X11-unix
+
 # Set up sudo for user
 RUN echo "$DEV_USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
     && sudo -u $DEV_USER touch $DEV_USER_HOME/.sudo_as_admin_successful
@@ -243,6 +249,7 @@ COPY --chown=root entrypoint.d/login_shim.sh $ENTRYPOINT_DIR/11_login_shim.sh
 COPY --chown=root entrypoint.d/shell_init.sh $ENTRYPOINT_DIR/14_shell_init.sh
 COPY --chown=root entrypoint.d/dbus_init.sh $ENTRYPOINT_DIR/15_dbus_init.sh
 COPY --chown=root entrypoint.d/gpg_init.sh $ENTRYPOINT_DIR/16_gpg_init.sh
+COPY --chown=root entrypoint.d/xauth_init.sh $ENTRYPOINT_DIR/17_xauth_init.sh
 COPY --chown=root entrypoint.d/keyring_init.sh $ENTRYPOINT_DIR/20_keyring_init.sh
 COPY --chown=root entrypoint.d/gh_init.sh $ENTRYPOINT_DIR/21_gh_init.sh
 

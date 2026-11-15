@@ -14,9 +14,12 @@ DEFAULT_TARGET_TAG="main"
 # The default projects directory
 DEFAULT_PROJECTS_DIR="$HOME/Projects"
 
+# The host runtime directory
+HOST_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+
 # The host GnuPG directory and the directory of the restricted agent socket
 HOST_GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
-HOST_GNUPG_EXTRA_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/gnupg-extra"
+HOST_GNUPG_EXTRA_DIR="$HOST_RUNTIME_DIR/gnupg-extra"
 
 # The host password store, but the container only gets the container subtree
 HOST_PASS_DIR=${PASSWORD_STORE_DIR:-$HOME/.password-store}
@@ -107,6 +110,34 @@ function check_host_gpg() {
     done
 }
 
+# Usage: make_xauth_file DEST
+#
+# Writes the host X11 cookie for the current display to the destination file,
+# with the family changed to wildcard. Normally, cookies are tied to the
+# hostname, but a wildcard cookie works whatever the container hostname is.
+function make_xauth_file() {
+    local dest="$1"
+    local host_xauthority=${XAUTHORITY:-$HOME/.Xauthority}
+    if ! command -v xauth &> /dev/null; then
+        echo "WARNING: No xauth on the host!" >&2
+        return 1
+    fi
+    if [ ! -f $host_xauthority ]; then
+        echo "WARNING: No X11 authority file: $host_xauthority" >&2
+        return 1
+    fi
+    local cookies
+    cookies=$(xauth -q -f $host_xauthority nlist $DISPLAY | sed -e 's/^..../ffff/' || true)
+    if [ -z "$cookies" ]; then
+        echo "WARNING: No readable X11 cookie for display $DISPLAY in: $host_xauthority" >&2
+        return 1
+    fi
+    if ! printf '%s\n' "$cookies" | xauth -q -f "$dest" nmerge -; then
+        echo "WARNING: Failed to write the X11 cookie to: $dest" >&2
+        return 1
+    fi
+}
+
 # Default options
 target_tag=$DEFAULT_TARGET_TAG
 mount_projects=0
@@ -190,7 +221,6 @@ EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
 DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
 
 # Ensure the files and directories we expect exist
-ensure_exists f 600 $HOME/.Xauthority
 ensure_exists d 700 $HOME/.ssh
 ensure_exists d 700 $HOST_PASS_DIR
 ensure_exists d 700 $HOST_PASS_CONTAINER_DIR
@@ -213,6 +243,7 @@ ensure_exists d 700 $HOME/.taughz
 ensure_exists d 700 $HOME/.taughz/shell
 ensure_exists d 700 $HOME/.taughz/emacs.d
 ensure_exists d 700 $HOME/.taughz/doom.d
+ensure_exists d 700 $HOME/.taughz/xauth
 
 # Get the user data ready
 passwd_ent=$(getent passwd $(id -u))
@@ -237,10 +268,36 @@ fi
 # The home directory inside the container
 CHOME=$([ $fixed_user -eq 0 ] && echo $DEV_USER_HOME || echo "/home/$user_name")
 
-DISPLAY_FLAGS=(
-    --env "DISPLAY=$DISPLAY"
-    --mount "type=bind,src=$XAUTHORITY,dst=/root/.Xauthority,readonly"
-)
+# The container cookie is per launch, and removed when the container exits
+xauth_file=""
+trap '[ -z "$xauth_file" ] || rm -f $xauth_file' EXIT
+
+display_flags=()
+if [ -z "${DISPLAY:-}" ]; then
+    echo "WARNING: DISPLAY is not set, X11 will not be available!" >&2
+else
+    display_flags+=(--env "DISPLAY=$DISPLAY")
+    # Local displays need their socket, but TCP displays do not. Only the one
+    # socket is shared, because X servers in the container cannot see the host
+    # lock files, and could replace the sockets of other host displays.
+    if printf '%s\n' $DISPLAY | grep -qE '^(unix)?:'; then
+        display_num=$(printf '%s\n' $DISPLAY | sed -E 's/^(unix)?:([0-9]+).*$/\2/')
+        x11_socket="/tmp/.X11-unix/X$display_num"
+        if [ -S $x11_socket ]; then
+            display_flags+=(--mount "type=bind,src=$x11_socket,dst=$x11_socket,readonly")
+        else
+            echo "WARNING: No X11 socket: $x11_socket" >&2
+            echo "WARNING: X11 will rely on the abstract socket!" >&2
+        fi
+    fi
+    # Generate an X11 cookie for the current display
+    xauth_file=$(mktemp -p $HOME/.taughz/xauth Xauthority.XXXXXX)
+    if make_xauth_file $xauth_file; then
+        display_flags+=(--mount "type=bind,src=$xauth_file,dst=$CHOME/.host/Xauthority,readonly")
+    else
+        echo "WARNING: X11 will rely on xhost access!" >&2
+    fi
+fi
 
 SSH_FLAGS=(
     --mount "type=bind,src=$HOME/.ssh,dst=$CHOME/.ssh"
@@ -349,7 +406,7 @@ if [ -e /proc/driver/nvidia/version ]; then
 fi
 
 echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
-    "${privileged_flags[@]}" "${gpu_flags[@]}" "${fixed_user_flags[@]}" "${DISPLAY_FLAGS[@]}" \
+    "${privileged_flags[@]}" "${gpu_flags[@]}" "${fixed_user_flags[@]}" "${display_flags[@]}" \
     "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
     "${BAZEL_FLAGS[@]}" "${JFROG_FLAGS[@]}" "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" \
