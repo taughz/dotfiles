@@ -15,18 +15,20 @@ DEFAULT_TARGET_TAG="main"
 DEFAULT_PROJECTS_DIR="$HOME/Projects"
 
 # The host runtime directory
-HOST_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 
-# The host directory holding the volumes
-HOST_VOLS_DIR="$HOME/.taughz/vols"
+# The host directory holding the container files, and its subdirectories
+TAUGHZ_DIR="$HOME/.taughz"
+TAUGHZ_VOLS_DIR="$TAUGHZ_DIR/vols"
+TAUGHZ_XAUTH_DIR="$TAUGHZ_DIR/xauth"
 
 # The host GnuPG directory and the directory of the restricted agent socket
-HOST_GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
-HOST_GNUPG_EXTRA_DIR="$HOST_RUNTIME_DIR/gnupg-extra"
+GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
+GNUPG_EXTRA_DIR="$RUNTIME_DIR/gnupg-extra"
 
 # The host password store, but the container only gets the container subtree
-HOST_PASS_DIR=${PASSWORD_STORE_DIR:-$HOME/.password-store}
-HOST_PASS_CONTAINER_DIR="$HOST_PASS_DIR/container"
+PASS_DIR=${PASSWORD_STORE_DIR:-$HOME/.password-store}
+PASS_CONTAINER_DIR="$PASS_DIR/container"
 
 # Usage: show_usage
 #
@@ -82,12 +84,12 @@ function echo_cmd() {
     "$@"
 }
 
-# Usage: check_host_gpg
+# Usage: check_gpg_config
 #
 # Checks that the host can forward GPG into the container. The container never
 # gets private keys, only the public keyring and the restricted agent socket.
-function check_host_gpg() {
-    local socket="$HOST_GNUPG_EXTRA_DIR/S.gpg-agent"
+function check_gpg_config() {
+    local socket="$GNUPG_EXTRA_DIR/S.gpg-agent"
     if [ ! -S "$socket" ]; then
         echo "ERROR: No restricted GPG agent socket: $socket" >&2
         echo "ERROR: Did you install the extra socket config file?" >&2
@@ -99,14 +101,14 @@ function check_host_gpg() {
     fi
     # Creates the public keyring and trust database if they don't exist
     if ! gpg --batch --no-auto-check-trustdb --list-keys &> /dev/null; then
-        echo "ERROR: Failed to read the GPG public keyring in: $HOST_GNUPG_DIR" >&2
+        echo "ERROR: Failed to read the GPG public keyring in: $GNUPG_DIR" >&2
         return 1
     fi
     # Check for specific GPG files we will mount
     local file
     for file in pubring.kbx trustdb.gpg; do
-        if [ ! -f "$HOST_GNUPG_DIR/$file" ]; then
-            echo "ERROR: No GPG file: $HOST_GNUPG_DIR/$file" >&2
+        if [ ! -f "$GNUPG_DIR/$file" ]; then
+            echo "ERROR: No GPG file: $GNUPG_DIR/$file" >&2
             return 1
         fi
     done
@@ -208,8 +210,8 @@ if ! command -v gpg &> /dev/null || ! command -v gpg-connect-agent &> /dev/null;
     exit 1
 fi
 
-# Check the host, GPG problems are fatal
-if ! check_host_gpg; then
+# Check for fatal GPG configuration issues
+if ! check_gpg_config; then
     exit 1
 fi
 
@@ -220,29 +222,29 @@ DEV_USER_UID=$(get_from_env "$IMAGE_ENV" "DEV_USER_UID")
 DEV_USER_HOME=$(get_from_env "$IMAGE_ENV" "DEV_USER_HOME")
 
 # Ensure the files and directories we expect exist
-ensure_exists d 700 $HOME/.ssh
-ensure_exists d 700 $HOST_PASS_DIR
-ensure_exists d 700 $HOST_PASS_CONTAINER_DIR
-ensure_exists f 644 $HOME/.gitconfig
-ensure_exists d 700 $HOME/.config/gh
-ensure_exists f 600 $HOME/.config/gh/config.yml
-ensure_exists d 700 $HOME/.xpra
-ensure_exists f 600 $HOME/.claude.json
-ensure_exists d 700 $HOME/.claude
-ensure_exists d 700 $HOME/.copilot
 ensure_exists f 644 $HOME/.bazelrc
-ensure_exists d 700 $HOME/.cache/bazel-taughz
 ensure_exists d 700 $HOME/.cache/bazel-shared
 ensure_exists d 700 $HOME/.cache/bazel-shared/disk
 ensure_exists d 700 $HOME/.cache/bazel-shared/repo
+ensure_exists d 700 $HOME/.cache/bazel-taughz
 ensure_exists d 700 $HOME/.cache/pip
 ensure_exists d 700 $HOME/.cache/uv
-ensure_exists d 700 $HOME/.jfrog
-ensure_exists d 700 $HOME/.config/gcloud
+ensure_exists d 700 $HOME/.claude
+ensure_exists f 600 $HOME/.claude.json
 ensure_exists d 700 $HOME/.config/acli
-ensure_exists d 700 $HOME/.taughz
-ensure_exists d 700 $HOST_VOLS_DIR
-ensure_exists d 700 $HOME/.taughz/xauth
+ensure_exists d 700 $HOME/.config/gcloud
+ensure_exists d 700 $HOME/.config/gh
+ensure_exists f 600 $HOME/.config/gh/config.yml
+ensure_exists d 700 $HOME/.copilot
+ensure_exists f 644 $HOME/.gitconfig
+ensure_exists d 700 $HOME/.jfrog
+ensure_exists d 700 $HOME/.ssh
+ensure_exists d 700 $HOME/.xpra
+ensure_exists d 700 $PASS_DIR
+ensure_exists d 700 $PASS_CONTAINER_DIR
+ensure_exists d 700 $TAUGHZ_DIR
+ensure_exists d 700 $TAUGHZ_VOLS_DIR
+ensure_exists d 700 $TAUGHZ_XAUTH_DIR
 
 # Get the user data ready
 passwd_ent=$(getent passwd $(id -u))
@@ -290,7 +292,7 @@ else
         fi
     fi
     # Generate an X11 cookie for the current display
-    xauth_file=$(mktemp -p $HOME/.taughz/xauth Xauthority.XXXXXX)
+    xauth_file=$(mktemp -p $TAUGHZ_XAUTH_DIR Xauthority.XXXXXX)
     if make_xauth_file $xauth_file; then
         display_flags+=(--mount "type=bind,src=$xauth_file,dst=$CHOME/.host/Xauthority,readonly")
     else
@@ -305,14 +307,14 @@ SSH_FLAGS=(
 GPG_FLAGS=(
     # Only the restricted agent socket and the public keyring, never private keys.
     # The container copies the public keyring into place, so its own is writable.
-    --mount "type=bind,src=$HOST_GNUPG_EXTRA_DIR,dst=/run/user/$user_uid/gnupg,readonly"
-    --mount "type=bind,src=$HOST_GNUPG_DIR/pubring.kbx,dst=$CHOME/.host/gnupg/pubring.kbx,readonly"
-    --mount "type=bind,src=$HOST_GNUPG_DIR/trustdb.gpg,dst=$CHOME/.host/gnupg/trustdb.gpg,readonly"
+    --mount "type=bind,src=$GNUPG_EXTRA_DIR,dst=/run/user/$user_uid/gnupg,readonly"
+    --mount "type=bind,src=$GNUPG_DIR/pubring.kbx,dst=$CHOME/.host/gnupg/pubring.kbx,readonly"
+    --mount "type=bind,src=$GNUPG_DIR/trustdb.gpg,dst=$CHOME/.host/gnupg/trustdb.gpg,readonly"
 )
 
 PASS_FLAGS=(
     # Only the container subtree, as the container's whole password store
-    --mount "type=bind,src=$HOST_PASS_CONTAINER_DIR,dst=$CHOME/.password-store,readonly"
+    --mount "type=bind,src=$PASS_CONTAINER_DIR,dst=$CHOME/.password-store,readonly"
 )
 
 GIT_FLAGS=(
@@ -364,11 +366,22 @@ ACLI_FLAGS=(
     --mount "type=bind,src=$HOME/.config/acli,dst=$CHOME/.config/acli"
 )
 
-# Volumes are discovered automatically from the environment variables
+# Host directories are discovered automatically from the environment variables,
+# and are always readonly (it's assumede scripts may be shared)
+host_flags=()
+for host_ent in $(printf '%s\n' "$IMAGE_ENV" | grep '^HOST_[A-Z0-9_]*_DIR=.' | sort); do
+    host_dst_dir=${host_ent#*=}
+    host_src_dir=$TAUGHZ_DIR/$(basename $host_dst_dir)
+    ensure_exists d 700 $host_src_dir
+    host_flags+=(--mount "type=bind,src=$host_src_dir,dst=$host_dst_dir,readonly")
+done
+
+# Volumes are discovered automatically from the environment variables, and are
+# always writable by the container, thus used for persistence
 vol_flags=()
 for vol_ent in $(printf '%s\n' "$IMAGE_ENV" | grep '^VOL_[A-Z0-9_]*_DIR=.' | sort); do
     vol_dir=${vol_ent#*=}
-    host_vol_dir=$HOST_VOLS_DIR/$(basename $vol_dir)
+    host_vol_dir=$TAUGHZ_VOLS_DIR/$(basename $vol_dir)
     ensure_exists d 700 $host_vol_dir
     vol_flags+=(--mount "type=bind,src=$host_vol_dir,dst=$vol_dir")
 done
@@ -416,7 +429,7 @@ echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
     "${BAZEL_FLAGS[@]}" "${PIP_FLAGS[@]}" "${UV_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
-    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${vol_flags[@]}" \
+    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${host_flags[@]}" "${vol_flags[@]}" \
     "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 

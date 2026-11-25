@@ -189,9 +189,6 @@ RUN install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID \
         $DEV_USER_HOME/.gnupg \
         $DEV_USER_HOME/.host/gnupg
 
-# Add the local bin directory to the path
-ENV PATH="$DEV_USER_HOME/.local/bin:$PATH"
-
 # Never start an agent, use the host's agent through a socket
 RUN echo "no-autostart" \
     | install -m 600 -o $DEV_USER_UID -g $DEV_USER_GID /dev/stdin \
@@ -215,11 +212,19 @@ ENV VOLS_INIT_DIR="$VOLS_DIR/.init"
 # Directory for shell config
 ENV VOL_SHELL_DIR="$VOLS_DIR/shell"
 
+# Directory for host files, which customize the container from the outside.
+# Everything in here is mounted read-only, so the container cannot change what
+# the host may use.
+ENV HOST_DIR="/host"
+
+# Directory for scripts shared with the host
+ENV HOST_BIN_DIR="$HOST_DIR/bin"
+
 # Directory for entry point scripts
 ENV ENTRYPOINT_DIR="/etc/entrypoint.d"
 
 # Create those directories, the shell config belongs to the user
-RUN install -d -m 755 $VOLS_DIR $VOLS_INIT_DIR $ENTRYPOINT_DIR \
+RUN install -d -m 755 $VOLS_DIR $VOLS_INIT_DIR $HOST_DIR $HOST_BIN_DIR $ENTRYPOINT_DIR \
     && install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID $VOL_SHELL_DIR
 
 # Create the tarball which initializes the shell config volume
@@ -230,6 +235,9 @@ RUN SHELL_TMP=$(mktemp -d) \
     && tar -C $SHELL_TMP --create -z -f \
         $VOLS_INIT_DIR/$(basename $VOL_SHELL_DIR).tar.gz . \
     && rm -rf $SHELL_TMP
+
+# Add the local and shared bin directories to the path
+ENV PATH="$DEV_USER_HOME/.local/bin:$HOST_BIN_DIR:$PATH"
 
 # Modify PS1 to put a * after the hostname. This is sort of useful because it
 # let's you quickly see if you are inside the container or not.
