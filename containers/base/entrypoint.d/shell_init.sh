@@ -20,7 +20,7 @@ is_empty_dir() {
 bash_config_dir=$SHELL_CONFIG_DIR/bash
 
 if is_empty_dir $SHELL_CONFIG_DIR; then
-    mkdir -m 700 $bash_config_dir
+    install -d -m 700 $bash_config_dir
     touch $bash_config_dir/bash_history
 fi
 

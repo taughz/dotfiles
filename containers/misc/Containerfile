@@ -84,11 +84,10 @@ RUN PREK_TAR_TMP=$(mktemp) \
 
 # The prek environments cannot be shared with the host
 ENV PREK_CACHE_DIR="$VOLS_DIR/prek"
-RUN mkdir -m 755 $PREK_CACHE_DIR \
-    && chown $DEV_USER_UID:$DEV_USER_GID $PREK_CACHE_DIR
 
 # Create a link to put this in the "expected" place
-RUN ln -s $PREK_CACHE_DIR $DEV_USER_HOME/.cache/prek \
+RUN install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID $PREK_CACHE_DIR \
+    && ln -s $PREK_CACHE_DIR $DEV_USER_HOME/.cache/prek \
     && chown -h $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.cache/prek
 
 # Variables for JFrog CLI
@@ -125,7 +124,7 @@ RUN GCLOUD_TAR_TMP=$(mktemp) \
     && GCLOUD_CONFIG_TMP=$(mktemp -d) \
     && curl -fsSL -o $GCLOUD_TAR_TMP "$GCLOUD_URL" \
     && (echo "$GCLOUD_MD5SUM  $GCLOUD_TAR_TMP" | md5sum --quiet -c -) \
-    && mkdir -p $GCLOUD_DIR \
+    && install -d -m 755 $GCLOUD_DIR \
     && tar -xzf $GCLOUD_TAR_TMP -C $GCLOUD_DIR --strip-components=1 \
     && ln -s $GCLOUD_DIR/bin/gcloud $GCLOUD_FILE \
     && ln -s $GCLOUD_DIR/bin/gsutil $GSUTIL_FILE \

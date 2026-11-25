@@ -65,11 +65,10 @@ function ensure_exists() {
         return 0
     fi
     case "$fod" in
-        "f" | "file") touch "$path";;
-        "d" | "dir") mkdir -p "$path";;
+        "f" | "file") install -m "$mode" /dev/null "$path";;
+        "d" | "dir") install -d -m "$mode" "$path";;
         *) echo "ERROR: ensure_exists must specify 'f' or 'd'" >&2; return 1;;
     esac
-    chmod "$mode" "$path"
 }
 
 # Usage: echo_cmd COMMAND [ARGS...]

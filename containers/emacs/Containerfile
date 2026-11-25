@@ -79,8 +79,8 @@ ENV EMACS_CONFIG_DIR=$DE_EMACS_DIR
 ENV DOOM_CONFIG_DIR=$DE_DOOM_DIR
 
 # Make blank directories to ensure permissions are set correctly
-RUN mkdir -m 755 $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR \
-    && chown $DEV_USER:$DEV_USER $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
+RUN install -d -m 755 -o $DEV_USER -g $DEV_USER \
+        $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
 
 # Add Doom executables to PATH
 ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
@@ -112,7 +112,7 @@ ARG DE_NERDFONT_URL="https://raw.githubusercontent.com/rainstormstudio/nerd-icon
 ARG DE_NERDFONT_FILE="$DEV_USER_HOME/.local/share/fonts/NFM.ttf"
 
 # Update the font cache
-RUN mkdir -p $(dirname $DE_NERDFONT_FILE) \
+RUN install -d -m 755 $(dirname $DE_NERDFONT_FILE) \
     && curl -fL -o $DE_NERDFONT_FILE "$DE_NERDFONT_URL" \
     && fc-cache -f
 

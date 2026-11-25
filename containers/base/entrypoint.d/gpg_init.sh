@@ -18,7 +18,7 @@ fi
 
 HOST_GNUPG_DIR="$HOME/.host/gnupg"
 
-[ -d $HOME/.gnupg ] || mkdir -m 700 $HOME/.gnupg
+install -d -m 700 $HOME/.gnupg
 
 for file in pubring.kbx trustdb.gpg; do
     if [ -f $HOST_GNUPG_DIR/$file ]; then

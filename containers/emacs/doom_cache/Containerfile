@@ -55,7 +55,7 @@ ENV EMACSDIR=$DE_EMACS_DIR
 ENV DOOMDIR=$DE_DOOM_DIR
 
 # Initialize Doom config, enable VTerm, then do Doom install
-RUN mkdir -p $DE_DOOM_DIR \
+RUN install -d -m 755 $DE_DOOM_DIR \
     && cp $DE_EMACS_DIR/static/init.example.el $DE_DOOM_DIR/init.el \
     && cp $DE_EMACS_DIR/static/config.example.el $DE_DOOM_DIR/config.el \
     && cp $DE_EMACS_DIR/static/packages.example.el $DE_DOOM_DIR/packages.el \

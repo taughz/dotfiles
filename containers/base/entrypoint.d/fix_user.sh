@@ -84,9 +84,9 @@ fi
 if [ $DEV_USER_UID -ne $OLD_DEV_USER_UID -o $DEV_USER_GID -ne $OLD_DEV_USER_GID ]; then
     if [ $DEV_USER_UID -ne $OLD_DEV_USER_UID ]; then
         rm -rf /run/user/$OLD_DEV_USER_UID
-        # The new directory may already exists because of bind mounts
-        [ ! -d "/run/user/" ] && mkdir -m 755 /run/user
-        [ ! -d "/run/user/$DEV_USER_UID" ] && mkdir -m 700 /run/user/$DEV_USER_UID
+        # The new directory may already exist because of bind mounts
+        install -d -m 755 /run/user
+        install -d -m 700 /run/user/$DEV_USER_UID
     fi
     prune_args=()
     for mnt in $(findmnt -rno TARGET | grep "^$DEV_USER_HOME/" || true); do

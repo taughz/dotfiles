@@ -91,7 +91,7 @@ ARG FAKE_LLVM_PKGS="clang clang-format clang-tidy clangd lld lldb"
 ARG FAKE_LLVM_VERSION="1:16.0-0taughz1"
 RUN FAKE_LLVM_TMP=$(mktemp -d) \
     && for pkg in $FAKE_LLVM_PKGS; do \
-        mkdir -p $FAKE_LLVM_TMP/$pkg/DEBIAN \
+        install -d -m 755 $FAKE_LLVM_TMP/$pkg/DEBIAN \
         && printf '%s\n' \
             "Package: $pkg" \
             "Version: $FAKE_LLVM_VERSION" \
@@ -149,7 +149,8 @@ RUN IWYU_TMP=$(mktemp -d) \
 # See: https://github.com/include-what-you-use/include-what-you-use/issues/100
 RUN CLANG_RES_DIR=$(clang -print-resource-dir) \
     && IWYU_RES_DIR=$(include-what-you-use -print-resource-dir || true) \
-    && mkdir -p $(dirname $IWYU_RES_DIR) \
+    && [ -n "$IWYU_RES_DIR" ] \
+    && install -d -m 755 $(dirname $IWYU_RES_DIR) \
     && ln -s $CLANG_RES_DIR $IWYU_RES_DIR
 
 # Copy these files to keep ASLR turned on for the seccomp profile

@@ -28,9 +28,11 @@ ARG CLAUDE_SHA256SUM="47a01daebf794f6c86c13d1875ad6e5be0627029ad8600731161f24018
 # You can find the official checksum here:
 # https://downloads.claude.ai/claude-code-releases/$CLAUDE_VERSION/manifest.json
 
-RUN curl -fL -o $CLAUDE_FILE "$CLAUDE_URL" \
-    && (echo "$CLAUDE_SHA256SUM  $CLAUDE_FILE" | sha256sum --quiet -c -) \
-    && chmod +x $CLAUDE_FILE
+RUN CLAUDE_TMP=$(mktemp) \
+    && curl -fL -o $CLAUDE_TMP "$CLAUDE_URL" \
+    && (echo "$CLAUDE_SHA256SUM  $CLAUDE_TMP" | sha256sum --quiet -c -) \
+    && install -m 755 $CLAUDE_TMP $CLAUDE_FILE \
+    && rm -f $CLAUDE_TMP
 
 # You can use the following URL to determine the current stable version:
 # https://api.github.com/repos/github/copilot-cli/releases/latest
@@ -44,12 +46,13 @@ ARG COPILOT_SHA256SUM="49d81b184f1a1b358af676155fe97e341b9d9f0bc8dd25190dfe17087
 # You can find the official checksums here:
 # https://github.com/github/copilot-cli/releases/download/v$COPILOT_VERSION/SHA256SUMS.txt
 
-RUN tmp_copilot_tarball=$(mktemp /tmp/copilot.XXXXXXXXXX.tar.gz) \
-    && curl -fL -o $tmp_copilot_tarball "$COPILOT_URL" \
-    && (echo "$COPILOT_SHA256SUM  $tmp_copilot_tarball" | sha256sum --quiet -c -) \
-    && tar -xzOf $tmp_copilot_tarball copilot > $COPILOT_FILE \
-    && chmod +x $COPILOT_FILE \
-    && rm -f $tmp_copilot_tarball
+RUN COPILOT_TAR_TMP=$(mktemp) \
+    && COPILOT_TMP=$(mktemp) \
+    && curl -fL -o $COPILOT_TAR_TMP "$COPILOT_URL" \
+    && (echo "$COPILOT_SHA256SUM  $COPILOT_TAR_TMP" | sha256sum --quiet -c -) \
+    && tar -xzOf $COPILOT_TAR_TMP copilot > $COPILOT_TMP \
+    && install -m 755 $COPILOT_TMP $COPILOT_FILE \
+    && rm -f $COPILOT_TAR_TMP $COPILOT_TMP
 
 # Switch to non-root user
 USER $DEV_USER

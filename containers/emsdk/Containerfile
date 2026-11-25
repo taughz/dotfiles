@@ -30,7 +30,7 @@ ARG EMSDK_NODE_DIR="$EMSDK_DIR/node/${EMSDK_NODE_VER}_64bit"
 # Download and extract the Emscripten SDK
 RUN curl -fL -o $EMSDK_FILE "$EMSDK_URL" \
     && (echo "$EMSDK_MD5SUM  $EMSDK_FILE" | md5sum --quiet -c -) \
-    && mkdir -p $EMSDK_DIR \
+    && install -d -m 755 $EMSDK_DIR \
     && tar -xf $EMSDK_FILE --strip-components=1 -C $EMSDK_DIR \
     && rm -f $EMSDK_FILE
 

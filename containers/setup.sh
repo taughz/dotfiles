@@ -77,8 +77,8 @@ fi
 
 # Install the Docker keyring
 if [ ! -f "$DOCKER_KEY_FILE" ]; then
-    curl -fsSL "$DOCKER_KEY_URL" | sudo gpg --dearmor -o "$DOCKER_KEY_FILE"
-    sudo chmod 644 "$DOCKER_KEY_FILE"
+    curl -fsSL "$DOCKER_KEY_URL" | gpg --dearmor \
+        | sudo install -m 644 /dev/stdin "$DOCKER_KEY_FILE"
 fi
 
 # Add the Docker repo
@@ -113,8 +113,8 @@ fi
 if [ -e /proc/driver/nvidia/version ]; then
     # Install the NVIDIA Container Toolkit keyring
     if [ ! -f "$NVIDIA_KEY_FILE" ]; then
-        curl -fsSL "$NVIDIA_KEY_URL" | sudo gpg --dearmor -o "$NVIDIA_KEY_FILE"
-        sudo chmod 644 "$NVIDIA_KEY_FILE"
+        curl -fsSL "$NVIDIA_KEY_URL" | gpg --dearmor \
+            | sudo install -m 644 /dev/stdin "$NVIDIA_KEY_FILE"
     fi
 
     # Add the NVIDIA Container Toolkit repo
