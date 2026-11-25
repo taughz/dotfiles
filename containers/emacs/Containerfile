@@ -73,39 +73,37 @@ ARG DE_DOOM_DIR="/vols/doom.d"
 
 # Straight makes heavy use of symlinks with absolute paths for its internal
 # organization. Copying those symlinks will break them, unless the absolute
-# paths stay the same. That is to say, $DE_EMACS_DIR must equal
-# $EMACS_CONFIG_DIR, etc.
-ENV EMACS_CONFIG_DIR=$DE_EMACS_DIR
-ENV DOOM_CONFIG_DIR=$DE_DOOM_DIR
+# paths stay the same. That is to say, DE_EMACS_DIR must equal VOL_EMACS_DIR,
+# and DE_DOOM_DIR must equal VOL_DOOM_DIR.
+ENV VOL_EMACS_DIR=$DE_EMACS_DIR
+ENV VOL_DOOM_DIR=$DE_DOOM_DIR
 
 # Make blank directories to ensure permissions are set correctly
 RUN install -d -m 755 -o $DEV_USER -g $DEV_USER \
-        $EMACS_CONFIG_DIR $DOOM_CONFIG_DIR
+        $VOL_EMACS_DIR $VOL_DOOM_DIR
 
 # Add Doom executables to PATH
-ENV PATH=$EMACS_CONFIG_DIR/bin:$PATH
+ENV PATH=$VOL_EMACS_DIR/bin:$PATH
 
 # Set environment variables used by Doom
-ENV EMACSDIR=$EMACS_CONFIG_DIR
-ENV DOOMDIR=$DOOM_CONFIG_DIR
+ENV EMACSDIR=$VOL_EMACS_DIR
+ENV DOOMDIR=$VOL_DOOM_DIR
 
-# Tarballs which will be made to initialize Emacs volumes
-ENV EMACS_CONFIG_TARBALL="$VOLS_INIT_DIR/emacs.d.tar.gz"
-ENV DOOM_CONFIG_TARBALL="$VOLS_INIT_DIR/doom.d.tar.gz"
-
-# Create tarballs for the Emacs Doom config files
-RUN --mount=type=bind,from=doom-cache,src=$DE_EMACS_DIR,dst=$EMACS_CONFIG_DIR \
-    tar -C $EMACS_CONFIG_DIR --create -z -f $EMACS_CONFIG_TARBALL .
-RUN --mount=type=bind,from=doom-cache,src=$DE_DOOM_DIR,dst=$DOOM_CONFIG_DIR \
-    tar -C $DOOM_CONFIG_DIR --create -z -f $DOOM_CONFIG_TARBALL .
+# Create the tarballs which initialize the Emacs volumes
+RUN --mount=type=bind,from=doom-cache,src=$DE_EMACS_DIR,dst=$VOL_EMACS_DIR \
+    tar -C $VOL_EMACS_DIR --create -z -f \
+        $VOLS_INIT_DIR/$(basename $VOL_EMACS_DIR).tar.gz .
+RUN --mount=type=bind,from=doom-cache,src=$DE_DOOM_DIR,dst=$VOL_DOOM_DIR \
+    tar -C $VOL_DOOM_DIR --create -z -f \
+        $VOLS_INIT_DIR/$(basename $VOL_DOOM_DIR).tar.gz .
 
 # Switch to non-root user
 USER $DEV_USER
 WORKDIR $DEV_USER_HOME
 
 # Add links to the home directory
-RUN ln -s $EMACS_CONFIG_DIR $DEV_USER_HOME/.emacs.d \
-    && ln -s $DOOM_CONFIG_DIR $DEV_USER_HOME/.doom.d
+RUN ln -s $VOL_EMACS_DIR $DEV_USER_HOME/.emacs.d \
+    && ln -s $VOL_DOOM_DIR $DEV_USER_HOME/.doom.d
 
 # Doom font variables
 ARG DE_NERDFONT_URL="https://raw.githubusercontent.com/rainstormstudio/nerd-icons.el/main/fonts/NFM.ttf"
@@ -116,15 +114,8 @@ RUN install -d -m 755 $(dirname $DE_NERDFONT_FILE) \
     && curl -fL -o $DE_NERDFONT_FILE "$DE_NERDFONT_URL" \
     && fc-cache -f
 
-# Copy entry point for config initialization
-COPY --chown=root entrypoint.d/emacs_init.sh $ENTRYPOINT_DIR/80_emacs_init.sh
-
 # Add VTerm integration to Bash config
 COPY --chown=$DEV_USER bashrc.d/emacs_setup.bash $DEV_USER_HOME/.bashrc.d/80_emacs_setup.bash
-
-# Persistent storage for the Emacs and Doom config directories. These
-# directories will be initialized with the Doom files from above.
-VOLUME ["$EMACS_CONFIG_DIR", "$DOOM_CONFIG_DIR"]
 
 # Copy the Emacs shim for the default command
 COPY --chown=root emacs_shim.sh /emacs_shim.sh

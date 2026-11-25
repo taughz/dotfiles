@@ -17,6 +17,9 @@ DEFAULT_PROJECTS_DIR="$HOME/Projects"
 # The host runtime directory
 HOST_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 
+# The host directory holding the volumes
+HOST_VOLS_DIR="$HOME/.taughz/vols"
+
 # The host GnuPG directory and the directory of the restricted agent socket
 HOST_GNUPG_DIR=${GNUPGHOME:-$HOME/.gnupg}
 HOST_GNUPG_EXTRA_DIR="$HOST_RUNTIME_DIR/gnupg-extra"
@@ -215,10 +218,6 @@ IMAGE_ENV=$(docker run --rm --entrypoint printenv $TARGET_IMAGE)
 DEV_USER=$(get_from_env "$IMAGE_ENV" "DEV_USER")
 DEV_USER_UID=$(get_from_env "$IMAGE_ENV" "DEV_USER_UID")
 DEV_USER_HOME=$(get_from_env "$IMAGE_ENV" "DEV_USER_HOME")
-SHELL_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "SHELL_CONFIG_DIR")
-EMACS_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "EMACS_CONFIG_DIR" || true)
-DOOM_CONFIG_DIR=$(get_from_env "$IMAGE_ENV" "DOOM_CONFIG_DIR" || true)
-PREK_CACHE_DIR=$(get_from_env "$IMAGE_ENV" "PREK_CACHE_DIR" || true)
 
 # Ensure the files and directories we expect exist
 ensure_exists d 700 $HOME/.ssh
@@ -242,10 +241,7 @@ ensure_exists d 700 $HOME/.jfrog
 ensure_exists d 700 $HOME/.config/gcloud
 ensure_exists d 700 $HOME/.config/acli
 ensure_exists d 700 $HOME/.taughz
-ensure_exists d 700 $HOME/.taughz/shell
-ensure_exists d 700 $HOME/.taughz/emacs.d
-ensure_exists d 700 $HOME/.taughz/doom.d
-ensure_exists d 700 $HOME/.taughz/prek
+ensure_exists d 700 $HOST_VOLS_DIR
 ensure_exists d 700 $HOME/.taughz/xauth
 
 # Get the user data ready
@@ -368,20 +364,14 @@ ACLI_FLAGS=(
     --mount "type=bind,src=$HOME/.config/acli,dst=$CHOME/.config/acli"
 )
 
-SHELL_FLAGS=(
-    --mount "type=bind,src=$HOME/.taughz/shell,dst=$SHELL_CONFIG_DIR"
-)
-
-emacs_flags=()
-if [ -n "$EMACS_CONFIG_DIR" -a -n "$DOOM_CONFIG_DIR" ]; then
-    emacs_flags+=(--mount "type=bind,src=$HOME/.taughz/emacs.d,dst=$EMACS_CONFIG_DIR")
-    emacs_flags+=(--mount "type=bind,src=$HOME/.taughz/doom.d,dst=$DOOM_CONFIG_DIR")
-fi
-
-prek_flags=()
-if [ -n "$PREK_CACHE_DIR" ]; then
-    prek_flags+=(--mount "type=bind,src=$HOME/.taughz/prek,dst=$PREK_CACHE_DIR")
-fi
+# Volumes are discovered automatically from the environment variables
+vol_flags=()
+for vol_ent in $(printf '%s\n' "$IMAGE_ENV" | grep '^VOL_[A-Z0-9_]*_DIR=.' | sort); do
+    vol_dir=${vol_ent#*=}
+    host_vol_dir=$HOST_VOLS_DIR/$(basename $vol_dir)
+    ensure_exists d 700 $host_vol_dir
+    vol_flags+=(--mount "type=bind,src=$host_vol_dir,dst=$vol_dir")
+done
 
 projects_flags=()
 if [ $mount_projects -ne 0 ]; then
@@ -426,8 +416,8 @@ echo_cmd docker run --rm --tty --interactive --network=host --env "TERM=$TERM" \
     "${SSH_FLAGS[@]}" "${GPG_FLAGS[@]}" "${PASS_FLAGS[@]}" "${GIT_FLAGS[@]}" \
     "${GH_FLAGS[@]}" "${XPRA_FLAGS[@]}" "${CLAUDE_FLAGS[@]}" "${COPILOT_FLAGS[@]}" \
     "${BAZEL_FLAGS[@]}" "${PIP_FLAGS[@]}" "${UV_FLAGS[@]}" "${JFROG_FLAGS[@]}" \
-    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${SHELL_FLAGS[@]}" "${emacs_flags[@]}" \
-    "${prek_flags[@]}" "${projects_flags[@]}" "${tz_flags[@]}" \
+    "${GCLOUD_FLAGS[@]}" "${ACLI_FLAGS[@]}" "${vol_flags[@]}" \
+    "${projects_flags[@]}" "${tz_flags[@]}" \
     "$TARGET_IMAGE"
 
 exit 0

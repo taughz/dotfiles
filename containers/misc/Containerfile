@@ -83,11 +83,11 @@ RUN PREK_TAR_TMP=$(mktemp) \
     && rm -f $PREK_TAR_TMP $PREK_TMP
 
 # The prek environments cannot be shared with the host
-ENV PREK_CACHE_DIR="$VOLS_DIR/prek"
+ENV VOL_PREK_DIR="$VOLS_DIR/prek"
 
 # Create a link to put this in the "expected" place
-RUN install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID $PREK_CACHE_DIR \
-    && ln -s $PREK_CACHE_DIR $DEV_USER_HOME/.cache/prek \
+RUN install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID $VOL_PREK_DIR \
+    && ln -s $VOL_PREK_DIR $DEV_USER_HOME/.cache/prek \
     && chown -h $DEV_USER_UID:$DEV_USER_GID $DEV_USER_HOME/.cache/prek
 
 # Variables for JFrog CLI
