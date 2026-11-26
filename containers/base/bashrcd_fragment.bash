@@ -1,25 +1,26 @@
 
 ########## BASHRC.D BEGIN ##########
-declare -a brc_files
-bashrc_d="$HOME/.bashrc.d"
-if [[ -d $bashrc_d ]]; then
-    readarray -t -d '' brc_files < \
-        <(find $bashrc_d -type f -regex '.*\.\(ba\)?sh$' -print0 | LC_ALL=C sort -z)
-fi
-declare -A brc_elapsed
-for brc_file in "${brc_files[@]}"; do
-    start_time=$EPOCHREALTIME
-    source "$brc_file"
-    end_time=$EPOCHREALTIME
-    brc_elapsed["$brc_file"]=$(awk 'BEGIN {printf "%.2f", '"($end_time - $start_time)}")
+declare -a _brc_files=()
+for _brc_dir in "$HOME/.bashrc.d" "${HOST_BASHRC_DIR:-}"; do
+    [[ -d $_brc_dir ]] || continue
+    readarray -t -d '' -O ${#_brc_files[@]} _brc_files < \
+        <(find $_brc_dir -type f -regex '.*\.\(ba\)?sh$' -print0 | LC_ALL=C sort -z)
+done
+declare -A _brc_elapsed=()
+for _brc_file in "${_brc_files[@]}"; do
+    _brc_start_time=$EPOCHREALTIME
+    source "$_brc_file"
+    _brc_end_time=$EPOCHREALTIME
+    _brc_elapsed["$_brc_file"]=$(awk 'BEGIN {printf "%.2f", '"($_brc_end_time - $_brc_start_time)}")
 done
 : "${BASHRC_D_PROFILE:=0}"
-if [[ $BASHRC_D_PROFILE -ne 0 ]] && [[ ${#brc_elapsed[@]} -gt 0 ]]; then
+if [[ $BASHRC_D_PROFILE -ne 0 ]] && [[ ${#_brc_elapsed[@]} -gt 0 ]]; then
     echo "Elapsed time to source '.bashrc.d':"
-    for brc_file in "${!brc_elapsed[@]}"; do
-        printf "%s %s\n" "${brc_elapsed[$brc_file]}" "$(basename "$brc_file")"
+    for _brc_file in "${!_brc_elapsed[@]}"; do
+        printf "%s %s\n" "${_brc_elapsed[$_brc_file]}" "$(basename "$_brc_file")"
     done | sort -rn | while read -r time name; do
         printf "  - %-20s %10s seconds\n" "$name" "$time"
     done
 fi
+unset -v _brc_files _brc_dir _brc_elapsed _brc_file _brc_start_time _brc_end_time
 ########### BASHRC.D END ###########
