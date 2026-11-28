@@ -212,23 +212,8 @@ ENV VOLS_INIT_DIR="$VOLS_DIR/.init"
 # Directory for shell config
 ENV VOL_SHELL_DIR="$VOLS_DIR/shell"
 
-# Directory for host files, which customize the container from the outside.
-# Everything in here is mounted read-only, so the container cannot change what
-# the host may use.
-ENV HOST_DIR="/host"
-
-# Directory for scripts shared with the host
-ENV HOST_BIN_DIR="$HOST_DIR/bin"
-
-# Directory for shell config fragments from the host
-ENV HOST_BASHRC_DIR="$HOST_DIR/bashrc.d"
-
-# Directory for entry point scripts
-ENV ENTRYPOINT_DIR="/etc/entrypoint.d"
-
-# Create those directories, the shell config belongs to the user
-RUN install -d -m 755 $VOLS_DIR $VOLS_INIT_DIR $ENTRYPOINT_DIR \
-        $HOST_DIR $HOST_BIN_DIR $HOST_BASHRC_DIR \
+# Create the volume directories, the shell config belongs to the user
+RUN install -d -m 755 $VOLS_DIR $VOLS_INIT_DIR \
     && install -d -m 755 -o $DEV_USER_UID -g $DEV_USER_GID $VOL_SHELL_DIR
 
 # Create the tarball which initializes the shell config volume
@@ -240,6 +225,23 @@ RUN SHELL_TMP=$(mktemp -d) \
         $VOLS_INIT_DIR/$(basename $VOL_SHELL_DIR).tar.gz . \
     && rm -rf $SHELL_TMP
 
+# Directory for host files, which customize the container from the outside.
+# Everything in here is mounted read-only, so the container cannot change what
+# the host may use.
+ENV HOST_DIR="/host"
+
+# Directory for scripts shared with the host
+ENV HOST_BIN_DIR="$HOST_DIR/bin"
+
+# Directory for entry point scripts from the host
+ENV HOST_ENTRYPOINT_DIR="$HOST_DIR/entrypoint.d"
+
+# Directory for shell config fragments from the host
+ENV HOST_BASHRC_DIR="$HOST_DIR/bashrc.d"
+
+# Create the host directories, they are mount points for read-only host files
+RUN install -d -m 755 $HOST_DIR $HOST_BIN_DIR $HOST_ENTRYPOINT_DIR $HOST_BASHRC_DIR
+
 # Add the local and shared bin directories to the path
 ENV PATH="$DEV_USER_HOME/.local/bin:$HOST_BIN_DIR:$PATH"
 
@@ -250,6 +252,12 @@ RUN sed -i 's;PS1.*\\h;&*;' /root/.bashrc $DEV_USER_HOME/.bashrc
 # Add ~/.bashrc.d support to the user's ~/.bashrc
 COPY --chown=root bashrcd_fragment.bash /tmp/bashrcd_fragment.bash
 RUN cat /tmp/bashrcd_fragment.bash >> $DEV_USER_HOME/.bashrc
+
+# Directory for entry point scripts
+ENV ENTRYPOINT_DIR="/etc/entrypoint.d"
+
+# Create the entry point directory, populated by this and other layers
+RUN install -d -m 755 $ENTRYPOINT_DIR
 
 # Copy the entry point script, login shim, etc
 COPY --chown=root entrypoint.sh /entrypoint.sh
